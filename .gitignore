@@ -1,0 +1,117 @@
+
+# ==================================================
+# ENVIRONMENT VARIABLES - FILE CONFIGURATION
+# ==================================================
+
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ==================================================
+# FRONTEND - NODE.JS / REACT / VITE
+# ==================================================
+
+node_modules/
+frontend/node_modules/
+
+dist/
+frontend/dist/
+build/
+frontend/build/
+
+.vite/
+*.local
+
+# NPM / YARN / PNPM LOGS
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==================================================
+# BACKEND - PYTHON / FASTAPI
+# ==================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+wheels/
+
+# ==================================================
+# DATABASE - LOCAL DATA
+# ==================================================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================================================
+# UPLOADS / GENERATED FILES
+# ==================================================
+
+backend/uploads/
+backend/storage/
+backend/media/
+
+# ==================================================
+# TESTING / COVERAGE
+# ==================================================
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+
+# ==================================================
+# LOGS
+# ==================================================
+
+*.log
+logs/
+
+# ==================================================
+# IDE / EDITOR
+# ==================================================
+
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# ==================================================
+# OPERATING SYSTEM
+# ==================================================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==================================================
+# TEMPORARY FILES
+# ==================================================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
