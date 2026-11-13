@@ -1,6 +1,18 @@
 // PageCardListMobile – card list for small screens.
 
 import React from 'react';
+import {
+  FiFileText,
+  FiLink,
+  FiLock,
+  FiCopy,
+  FiClock,
+  FiEdit,
+  FiEye,
+  FiUploadCloud,
+  FiSlash,
+  FiTrash2,
+} from 'react-icons/fi';
 import type { Page } from '../types/page.types';
 import {
   COLORS,
@@ -34,6 +46,9 @@ const pillBtn = (bg: string, color: string): React.CSSProperties => ({
   fontSize: 13,
   fontWeight: 600,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
 });
 
 export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
@@ -82,12 +97,13 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 height: 38,
                 borderRadius: 10,
                 background: published ? COLORS.primarySoft : COLORS.draftBg,
+                color: published ? COLORS.primary : COLORS.draft,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              📄
+              <FiFileText size={18} />
             </div>
             <div
               title={page.title}
@@ -118,16 +134,30 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               gap: 8,
             }}
           >
-            <code style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {published ? '🔗' : '🔒'} {displaySlug(page.slug)}
-            </code>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              {published ? (
+                <FiLink size={14} color={COLORS.primary} />
+              ) : (
+                <FiLock size={14} color={COLORS.muted} />
+              )}
+              <code style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {displaySlug(page.slug)}
+              </code>
+            </div>
             {published ? (
               <button
                 type="button"
                 onClick={() => onCopySlug(page)}
-                style={{ ...iconBtnStyle, fontSize: 12, color: COLORS.primary, fontWeight: 600 }}
+                style={{
+                  ...iconBtnStyle,
+                  fontSize: 12,
+                  color: COLORS.primary,
+                  fontWeight: 600,
+                  gap: 4,
+                }}
               >
-                ⧉ Sao chép
+                <FiCopy size={13} />
+                <span>Sao chép</span>
               </button>
             ) : (
               <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: 'italic' }}>
@@ -159,7 +189,10 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               </strong>
               {page.author.name}
             </span>
-            <span>🕒 {formatUpdatedAt(page.updatedAt).split(' • ')[0]}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FiClock size={12} />
+              <span>{formatUpdatedAt(page.updatedAt).split(' • ')[0]}</span>
+            </span>
           </div>
 
           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -169,7 +202,8 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               onClick={() => onEdit(page)}
               style={pillBtn(COLORS.primary, '#fff')}
             >
-              ✏️ {published ? 'Sửa' : 'Tiếp tục sửa'}
+              <FiEdit size={14} />
+              <span>{published ? 'Sửa' : 'Tiếp tục sửa'}</span>
             </button>
             {published ? (
               <button
@@ -177,7 +211,8 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 onClick={() => onPreview(page)}
                 style={pillBtn('transparent', COLORS.text)}
               >
-                👁 Xem trước
+                <FiEye size={14} />
+                <span>Xem trước</span>
               </button>
             ) : (
               <button
@@ -186,7 +221,8 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 onClick={() => onToggleStatus(page)}
                 style={pillBtn(COLORS.published, '#fff')}
               >
-                ⬆ Xuất bản ngay
+                <FiUploadCloud size={14} />
+                <span>Xuất bản ngay</span>
               </button>
             )}
             <span style={{ flex: 1 }} />
@@ -199,7 +235,7 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 onClick={() => onToggleStatus(page)}
                 style={iconBtnStyle}
               >
-                🚫
+                <FiSlash size={16} />
               </button>
             )}
             <button
@@ -210,7 +246,7 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               onClick={() => onDelete(page)}
               style={{ ...iconBtnStyle, color: COLORS.danger }}
             >
-              🗑
+              <FiTrash2 size={16} />
             </button>
           </div>
         </li>

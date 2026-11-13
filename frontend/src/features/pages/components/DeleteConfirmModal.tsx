@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { FiAlertTriangle } from 'react-icons/fi';
 import type { Page } from '../types/page.types';
 
 export interface DeleteConfirmModalProps {
@@ -42,8 +43,6 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 28,
-    fontWeight: 700,
   },
   title: { margin: '0 0 8px', fontSize: 20, fontWeight: 700 },
   text: { margin: '0 0 8px', fontSize: 14, color: '#4B5563', lineHeight: 1.5 },
@@ -79,7 +78,7 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 600,
     cursor: 'pointer',
   },
-  dangerBtn: {
+  deleteBtn: {
     flex: '1 1 140px',
     padding: '10px 18px',
     borderRadius: 10,
@@ -89,118 +88,98 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  spinner: {
-    width: 14,
-    height: 14,
-    border: '2px solid rgba(255,255,255,0.4)',
-    borderTopColor: '#fff',
-    borderRadius: '50%',
-    display: 'inline-block',
-    animation: 'dc-spin 0.8s linear infinite',
   },
 };
 
-const SPINNER_KEYFRAMES = '@keyframes dc-spin { to { transform: rotate(360deg); } }';
-
-/**
- * Hộp thoại xác nhận xóa trang. Chỉ gọi `onConfirmDelete(page.id)` khi người dùng
- * bấm "Xác nhận xóa" — việc gọi API xóa do container (PageManagementView) đảm nhận.
- */
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   isOpen,
   page,
   onClose,
   onConfirmDelete,
-  isLoading = false,
+  isLoading: propLoading = false,
 }) => {
-  const uid = useId();
-  const cancelRef = useRef<HTMLButtonElement>(null);
   const [internalLoading, setInternalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
+  const cancelBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const loading = isLoading || internalLoading;
+  const titleId = useId();
+  const descId = useId();
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const loading = propLoading || internalLoading;
 
   useEffect(() => {
     if (isOpen) {
       setError(null);
       setInternalLoading(false);
-      // Focus nút Huỷ mặc định để tránh xóa nhầm khi nhấn Enter.
-      const t = setTimeout(() => cancelRef.current?.focus(), 0);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => cancelBtnRef.current?.focus(), 0);
+      return () => clearTimeout(timer);
     }
     return undefined;
   }, [isOpen, page?.id]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) {
+        e.preventDefault();
+        onClose();
+      }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, loading, onClose]);
 
   if (!isOpen || !page) return null;
 
   const handleConfirm = async () => {
-    if (loading) return;
     setError(null);
     setInternalLoading(true);
     try {
       await onConfirmDelete(page.id);
-    } catch (err) {
-      if (mountedRef.current) {
-        const msg =
-          err && typeof err === 'object' && 'message' in err && (err as Error).message
-            ? (err as Error).message
-            : 'Xóa trang thất bại. Vui lòng thử lại.';
-        setError(msg);
-      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+          ? err
+          : 'Không thể xóa trang. Vui lòng thử lại.';
+      setError(msg);
     } finally {
-      if (mountedRef.current) setInternalLoading(false);
+      setInternalLoading(false);
     }
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !loading) onClose();
-  };
-
   return (
-    <div style={styles.overlay} onMouseDown={handleOverlayClick} data-testid="delete-confirm-modal">
-      <style>{SPINNER_KEYFRAMES}</style>
+    <div
+      style={styles.overlay}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose();
+      }}
+    >
       <div
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby={`${uid}-title`}
-        aria-describedby={`${uid}-desc`}
+        aria-labelledby={titleId}
+        aria-describedby={descId}
         style={styles.dialog}
       >
         <div style={styles.iconWrap} aria-hidden="true">
-          !
+          <FiAlertTriangle size={28} />
         </div>
-        <h2 id={`${uid}-title`} style={styles.title}>
-          Xóa trang này?
-        </h2>
-        <p id={`${uid}-desc`} style={styles.text}>
-          Bạn sắp xóa vĩnh viễn trang sau cùng toàn bộ nội dung của nó:
+
+        <h3 id={titleId} style={styles.title}>
+          Xác nhận xóa trang?
+        </h3>
+
+        <p id={descId} style={styles.text}>
+          Bạn có chắc chắn muốn xóa trang này không?
         </p>
+
         <div style={styles.pageName}>
-          {page.title}
-          <span style={styles.slug}>{page.slug === '/' ? '/' : `/${page.slug}`}</span>
+          <span>{page.title}</span>
+          <span style={styles.slug}>/{page.slug?.replace(/^\/+/, '')}</span>
         </div>
+
         <p style={styles.warning}>Hành động này không thể hoàn tác.</p>
 
         {error && (
@@ -211,26 +190,28 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 
         <div style={styles.actions}>
           <button
-            ref={cancelRef}
+            ref={cancelBtnRef}
             type="button"
-            style={{ ...styles.cancelBtn, opacity: loading ? 0.6 : 1 }}
             onClick={onClose}
             disabled={loading}
+            style={{
+              ...styles.cancelBtn,
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
           >
-            Huỷ
+            Hủy
           </button>
           <button
             type="button"
-            style={{
-              ...styles.dangerBtn,
-              opacity: loading ? 0.8 : 1,
-              cursor: loading ? 'wait' : 'pointer',
-            }}
             onClick={handleConfirm}
             disabled={loading}
-            aria-busy={loading}
+            style={{
+              ...styles.deleteBtn,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
           >
-            {loading && <span style={styles.spinner} aria-hidden="true" />}
             {loading ? 'Đang xóa...' : 'Xác nhận xóa'}
           </button>
         </div>

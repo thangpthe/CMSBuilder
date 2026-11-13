@@ -1,6 +1,16 @@
 // PageTableRow – one desktop row + shared list helpers (status badge, time, copy slug).
 
 import React, { useState } from 'react';
+import {
+  FiFileText,
+  FiCopy,
+  FiEdit,
+  FiEye,
+  FiTrash2,
+  FiUploadCloud,
+  FiSlash,
+  FiUser,
+} from 'react-icons/fi';
 import type { Page, PageStatus } from '../types/page.types';
 
 /* ------------------------------------------------------------------ */
@@ -117,9 +127,12 @@ export const iconBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
   padding: 6,
   borderRadius: 8,
-  fontSize: 16,
-  lineHeight: 1,
+  fontSize: 15,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   color: COLORS.text,
+  transition: 'background 0.15s ease',
 };
 
 /* ------------------------------------------------------------------ */
@@ -178,10 +191,9 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 18,
             }}
           >
-            📄
+            <FiFileText size={20} />
           </div>
           <div style={{ minWidth: 0 }}>
             <div
@@ -222,7 +234,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
             aria-label={`Sao chép đường dẫn ${displaySlug(page.slug)}`}
             onClick={() => onCopySlug(page)}
           >
-            ⧉
+            <FiCopy size={14} color={COLORS.muted} />
           </button>
         </div>
       </td>
@@ -230,7 +242,10 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
         <StatusBadge status={page.status} />
       </td>
       <td style={cell}>
-        <div style={{ fontWeight: 500 }}>👤 {page.author.name}</div>
+        <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <FiUser size={14} color={COLORS.muted} />
+          <span>{page.author.name}</span>
+        </div>
         <div style={{ color: COLORS.muted, fontSize: 13, marginTop: 2 }}>
           {formatUpdatedAt(page.updatedAt)}
         </div>
@@ -244,7 +259,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
           disabled={busy}
           onClick={() => onEdit(page)}
         >
-          ✏️
+          <FiEdit size={16} color={COLORS.muted} />
         </button>
         <button
           type="button"
@@ -253,7 +268,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
           aria-label={`Xem trước ${page.title}`}
           onClick={() => onPreview(page)}
         >
-          👁
+          <FiEye size={16} color={COLORS.muted} />
         </button>
         <button
           type="button"
@@ -263,7 +278,11 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
           disabled={busy}
           onClick={() => onToggleStatus(page)}
         >
-          {published ? '🚫' : '🚀'}
+          {published ? (
+            <FiSlash size={16} color={COLORS.muted} />
+          ) : (
+            <FiUploadCloud size={16} color={COLORS.primary} />
+          )}
         </button>
         <button
           type="button"
@@ -273,7 +292,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
           disabled={busy}
           onClick={() => onDelete(page)}
         >
-          🗑
+          <FiTrash2 size={16} />
         </button>
       </td>
     </tr>

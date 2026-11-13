@@ -1,6 +1,8 @@
 // PageToolbar – status tabs, search, sort and "create page" button.
 
 import React from 'react';
+import { FiSearch, FiPlus } from 'react-icons/fi';
+import { LuArrowUpDown } from 'react-icons/lu';
 import type { PageSort, PageStats, PageStatusFilter } from '../types/page.types';
 import { COLORS } from './PageTableRow';
 
@@ -112,7 +114,7 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
         maxWidth: compact ? undefined : 340,
       }}
     >
-      <span aria-hidden>🔍</span>
+      <FiSearch size={16} color={COLORS.muted} aria-hidden />
       <input
         type="search"
         value={search}
@@ -131,8 +133,8 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
   );
 
   const sortSelect = (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
-      <span aria-hidden>⇅</span>
+    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: COLORS.muted }}>
+      <LuArrowUpDown size={15} color={COLORS.muted} aria-hidden />
       <select
         value={sort}
         aria-label="Sắp xếp"
@@ -171,9 +173,14 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
         cursor: 'pointer',
         width: compact ? '100%' : undefined,
         whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
       }}
     >
-      ＋ Tạo trang mới
+      <FiPlus size={16} />
+      <span>Tạo trang mới</span>
     </button>
   );
 

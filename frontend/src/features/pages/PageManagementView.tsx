@@ -2,6 +2,14 @@
 // Wires usePages + list components (Worker 1) with PageFormModal / DeleteConfirmModal (Worker 2).
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  FiCheckCircle,
+  FiAlertCircle,
+  FiInfo,
+  FiX,
+  FiFileText,
+  FiSearch,
+} from 'react-icons/fi';
 import { pageApi } from './api/pageApi';
 import { usePages } from './hooks/usePages';
 import type { Page } from './types/page.types';
@@ -78,213 +86,197 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
     [],
   );
 
-  /* ---------------- actions ---------------- */
+  const markBusy = (id: string, busy: boolean) =>
+    setBusyIds((prev) => (busy ? [...prev, id] : prev.filter((x) => x !== id)));
 
-  const openCreate = () => {
+  // Handlers
+  const handleOpenCreate = () => {
     setFormMode('create');
     setEditingPage(null);
     setFormOpen(true);
   };
 
-  const openEdit = (page: Page) => {
+  const handleOpenEdit = (page: Page) => {
     setFormMode('edit');
     setEditingPage(page);
     setFormOpen(true);
   };
 
-  const handleFormSuccess = (_page: Page, message: string) => {
+  const handleFormSuccess = (page: Page, message: string) => {
     setFormOpen(false);
     setEditingPage(null);
-    showToast('success', 'Thao tác thành công', message);
     list.refetch();
+    showToast('success', formMode === 'create' ? 'Đã tạo trang mới' : 'Đã cập nhật trang', message || page.title);
   };
+
+  const handleOpenDelete = (page: Page) => setDeletingPage(page);
 
   const handleConfirmDelete = async (pageId: string) => {
     setDeleteLoading(true);
     try {
       const res = await pageApi.deletePage(pageId);
       setDeletingPage(null);
-      showToast('success', 'Thao tác thành công', res.message);
-      await list.refetch();
+      list.refetch();
+      showToast('success', 'Đã xóa trang', res.message || 'Trang đã được xóa khỏi hệ thống.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể xóa trang. Vui lòng thử lại.';
+      showToast('error', 'Xóa thất bại', msg);
+      throw err;
     } finally {
       setDeleteLoading(false);
     }
-    // Errors propagate so DeleteConfirmModal can display them.
   };
 
   const handleToggleStatus = async (page: Page) => {
     const nextStatus = page.status === 'published' ? 'draft' : 'published';
-    setBusyIds((ids) => [...ids, page.id]);
+    markBusy(page.id, true);
     try {
-      await pageApi.updatePage(page.id, { status: nextStatus });
+      const res = await pageApi.updatePage(page.id, { status: nextStatus });
+      list.refetch();
       showToast(
         'success',
-        'Thao tác thành công',
-        nextStatus === 'published'
-          ? `Đã xuất bản "${page.title}"`
-          : `Đã gỡ xuất bản "${page.title}" (chuyển về Bản nháp)`,
+        nextStatus === 'published' ? 'Đã xuất bản' : 'Đã chuyển thành bản nháp',
+        `Trang "${res.data.title}" ${nextStatus === 'published' ? 'đã được công khai' : 'đã chuyển về bản nháp'}.`,
       );
-      await list.refetch();
-    } catch (err) {
-      showToast('error', 'Thao tác thất bại', err instanceof Error ? err.message : 'Lỗi không xác định');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể đổi trạng thái trang.';
+      showToast('error', 'Lỗi trạng thái', msg);
     } finally {
-      setBusyIds((ids) => ids.filter((id) => id !== page.id));
+      markBusy(page.id, false);
     }
   };
 
   const handleCopySlug = async (page: Page) => {
-    const path = displaySlug(page.slug);
-    const url = typeof window !== 'undefined' ? `${window.location.origin}${path}` : path;
+    const url = displaySlug(page.slug);
     const ok = await copyText(url);
-    if (ok) showToast('info', 'Đã sao chép', url);
-    else showToast('error', 'Không thể sao chép', 'Trình duyệt không cho phép truy cập clipboard.');
+    if (ok) showToast('info', 'Đã sao chép đường dẫn', url);
+    else showToast('error', 'Lỗi sao chép', 'Không thể sao chép vào bộ nhớ tạm.');
   };
 
   const handlePreview = (page: Page) => {
-    if (onPreview) return onPreview(page);
-    if (typeof window !== 'undefined') {
-      window.open(displaySlug(page.slug), '_blank', 'noopener,noreferrer');
+    if (onPreview) onPreview(page);
+    else {
+      const url = `/p${displaySlug(page.slug)}`;
+      if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
   const rowActions = {
-    onEdit: openEdit,
-    onDelete: (p: Page) => setDeletingPage(p),
+    onEdit: handleOpenEdit,
+    onDelete: handleOpenDelete,
     onPreview: handlePreview,
     onToggleStatus: handleToggleStatus,
     onCopySlug: handleCopySlug,
   };
 
-  /* ---------------- body states ---------------- */
-
-  const hasFilter = list.search.trim() !== '' || list.status !== 'all';
-
-  let body: React.ReactNode;
-  if (list.initialLoading) {
-    body = <LoadingState rows={isMobile ? 3 : 5} />;
-  } else if (list.error && list.items.length === 0) {
-    body = <ErrorState message={list.error} onRetry={list.refetch} />;
-  } else if (!list.loading && list.items.length === 0) {
-    body = hasFilter ? (
-      <EmptyState
-        icon="🔎"
-        title="Không tìm thấy trang phù hợp"
-        description="Thử từ khóa khác hoặc bỏ bộ lọc trạng thái."
-        actionLabel="Xóa bộ lọc"
-        onAction={() => {
-          list.setSearch('');
-          list.setStatus('all');
-        }}
-      />
-    ) : (
-      <EmptyState
-        icon="📭"
-        title="Chưa có trang nào"
-        description="Bắt đầu bằng việc tạo trang nội dung đầu tiên của bạn."
-        actionLabel="＋ Tạo trang mới"
-        onAction={openCreate}
-      />
-    );
-  } else {
-    body = (
-      <>
-        {list.error && <InlineError message={list.error} onRetry={list.refetch} />}
-        {isMobile ? (
-          <PageCardListMobile
-            pages={list.items}
-            busyIds={busyIds}
-            refreshing={list.loading}
-            {...rowActions}
-          />
-        ) : (
-          <PageTable pages={list.items} busyIds={busyIds} refreshing={list.loading} {...rowActions} />
-        )}
-        <PagePagination
-          pagination={list.pagination}
-          onPageChange={list.setPage}
-          disabled={list.loading}
-          compact={isMobile}
-        />
-      </>
-    );
-  }
+  const hasFilter = Boolean(list.search.trim()) || list.status !== 'all';
+  const showInitialLoading = list.initialLoading && list.items.length === 0;
 
   return (
     <div
-      data-testid="page-management-view"
       style={{
-        fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+        width: '100%',
+        maxWidth: 1200,
+        margin: '0 auto',
+        padding: isMobile ? '16px 12px 64px' : '24px 24px 48px',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         color: COLORS.text,
-        padding: isMobile ? 16 : 24,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: isMobile ? 14 : 20,
-        position: 'relative',
+        boxSizing: 'border-box',
       }}
     >
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 32, fontWeight: 700 }}>
-            {isMobile ? 'Quản lý Trang' : 'Danh sách trang'}
-          </h1>
-          <p style={{ margin: '4px 0 0', color: COLORS.muted, fontSize: isMobile ? 13 : 15 }}>
-            Quản lý, chỉnh sửa, gỡ xuất bản và chia sẻ liên kết các trang nội dung.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => list.refetch()}
-          disabled={list.loading}
-          aria-label="Tải lại danh sách"
-          title="Tải lại"
-          style={{
-            border: 'none',
-            background: COLORS.primarySoft,
-            color: COLORS.primary,
-            borderRadius: '50%',
-            width: 38,
-            height: 38,
-            cursor: list.loading ? 'default' : 'pointer',
-            fontSize: 18,
-            flex: '0 0 auto',
-          }}
-        >
-          ↻
-        </button>
-      </header>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, margin: 0, letterSpacing: -0.5 }}>
+          Danh sách trang
+        </h1>
+        <p style={{ margin: '4px 0 0', color: COLORS.muted, fontSize: isMobile ? 13 : 14 }}>
+          Quản lý, chỉnh sửa, gỡ xuất bản và chia sẻ liên kết các trang nội dung.
+        </p>
+      </div>
 
-      <PageStatsCards stats={list.stats} loading={list.initialLoading} compact={isMobile} />
+      {/* Summary stats */}
+      <div style={{ marginBottom: 16 }}>
+        <PageStatsCards stats={list.stats} loading={list.loading} compact={isMobile} />
+      </div>
 
-      <PageToolbar
-        status={list.status}
-        search={list.search}
-        sort={list.sort}
-        stats={list.stats}
-        onStatusChange={list.setStatus}
-        onSearchChange={list.setSearch}
-        onSortChange={list.setSort}
-        onCreate={openCreate}
-        compact={isMobile}
-      />
+      {/* Toolbar */}
+      <div style={{ marginBottom: 16 }}>
+        <PageToolbar
+          status={list.status}
+          search={list.search}
+          sort={list.sort}
+          stats={list.stats}
+          onStatusChange={list.setStatus}
+          onSearchChange={list.setSearch}
+          onSortChange={list.setSort}
+          onCreate={handleOpenCreate}
+          compact={isMobile}
+        />
+      </div>
 
-      <section
-        aria-label="Danh sách trang"
-        style={
-          isMobile
-            ? undefined
-            : {
-                background: '#fff',
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 14,
-                overflow: 'hidden',
-              }
-        }
-      >
-        {body}
-      </section>
+      {/* Main content body: loading / error / empty / list */}
+      <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+        {showInitialLoading && <LoadingSkeleton compact={isMobile} />}
 
-      {toast && <ToastView toast={toast} onClose={() => setToast(null)} mobile={isMobile} />}
+        {!showInitialLoading && list.error && (
+          <ErrorState message={list.error} onRetry={list.refetch} />
+        )}
 
+        {!showInitialLoading && !list.error && list.items.length === 0 && (
+          hasFilter ? (
+            <EmptyState
+              icon={<FiSearch size={36} color={COLORS.muted} />}
+              title="Không tìm thấy trang phù hợp"
+              description="Thử đổi từ khóa tìm kiếm hoặc bỏ chọn bộ lọc trạng thái."
+              actionLabel="Xóa bộ lọc"
+              onAction={() => {
+                list.setSearch('');
+                list.setStatus('all');
+              }}
+            />
+          ) : (
+            <EmptyState
+              icon={<FiFileText size={36} color={COLORS.muted} />}
+              title="Chưa có trang nội dung nào"
+              description="Hãy bắt đầu tạo trang đầu tiên để xuất bản nội dung của bạn."
+              actionLabel="＋ Tạo trang mới"
+              onAction={handleOpenCreate}
+            />
+          )
+        )}
+
+        {!showInitialLoading && !list.error && list.items.length > 0 && (
+          <>
+            {list.loading && <InlineRefreshBar />}
+            {isMobile ? (
+              <div style={{ padding: 12 }}>
+                <PageCardListMobile
+                  pages={list.items}
+                  busyIds={busyIds}
+                  refreshing={list.loading}
+                  {...rowActions}
+                />
+              </div>
+            ) : (
+              <PageTable
+                pages={list.items}
+                busyIds={busyIds}
+                refreshing={list.loading}
+                {...rowActions}
+              />
+            )}
+            <PagePagination
+              pagination={list.pagination}
+              onPageChange={list.setPage}
+              disabled={list.loading}
+              compact={isMobile}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Modals */}
       <PageFormModal
         isOpen={formOpen}
         mode={formMode}
@@ -297,85 +289,85 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
       />
 
       <DeleteConfirmModal
-        isOpen={deletingPage !== null}
+        isOpen={Boolean(deletingPage)}
         page={deletingPage}
-        onClose={() => {
-          if (!deleteLoading) setDeletingPage(null);
-        }}
-        onConfirmDelete={handleConfirmDelete}
         isLoading={deleteLoading}
+        onClose={() => !deleteLoading && setDeletingPage(null)}
+        onConfirmDelete={handleConfirmDelete}
       />
+
+      {/* Toast */}
+      {toast && <ToastView toast={toast} onClose={() => setToast(null)} mobile={isMobile} />}
     </div>
   );
 };
 
 /* ------------------------------------------------------------------ */
-/* Local presentational states                                         */
+/* Subviews: LoadingSkeleton, ErrorState, EmptyState, ToastView        */
 /* ------------------------------------------------------------------ */
 
-const LoadingState: React.FC<{ rows: number }> = ({ rows }) => (
-  <div data-testid="page-list-loading" role="status" aria-live="polite" style={{ padding: 16 }}>
-    <span style={{ position: 'absolute', left: -9999 }}>Đang tải danh sách trang...</span>
-    {Array.from({ length: rows }).map((_, i) => (
-      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '12px 0' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: COLORS.bgSoft }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ height: 14, width: '45%', borderRadius: 6, background: COLORS.bgSoft }} />
-          <div style={{ height: 12, width: '70%', borderRadius: 6, background: COLORS.bgSoft, marginTop: 8 }} />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
 const centerBox: React.CSSProperties = {
-  padding: '40px 20px',
+  padding: '60px 20px',
   textAlign: 'center',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 8,
-  background: '#fff',
-  borderRadius: 14,
+  gap: 10,
 };
 
 const actionBtn: React.CSSProperties = {
-  marginTop: 8,
+  marginTop: 6,
   border: 'none',
   background: COLORS.primary,
   color: '#fff',
   borderRadius: 10,
-  padding: '9px 16px',
+  padding: '9px 18px',
+  fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
 };
 
-const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
-  <div data-testid="page-list-error" role="alert" style={centerBox}>
-    <div style={{ fontSize: 36 }}>⚠️</div>
-    <div style={{ fontWeight: 700, fontSize: 17 }}>Không thể tải danh sách trang</div>
-    <div style={{ color: COLORS.muted, fontSize: 14 }}>{message}</div>
-    <button type="button" onClick={onRetry} style={actionBtn}>
-      Thử lại
-    </button>
+const LoadingSkeleton: React.FC<{ compact?: boolean }> = ({ compact }) => (
+  <div style={{ padding: compact ? 12 : 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div
+        key={i}
+        style={{
+          height: compact ? 90 : 54,
+          borderRadius: 10,
+          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.5s infinite',
+        }}
+      />
+    ))}
   </div>
 );
 
-const InlineError: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
+const InlineRefreshBar: React.FC = () => (
   <div
-    role="alert"
     style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: 8,
-      padding: '10px 16px',
-      background: COLORS.dangerSoft,
-      color: COLORS.danger,
-      fontSize: 14,
+      height: 2,
+      background: COLORS.primarySoft,
+      overflow: 'hidden',
     }}
   >
-    <span>⚠️ {message}</span>
+    <div
+      style={{
+        height: '100%',
+        width: '40%',
+        background: COLORS.primary,
+        animation: 'indeterminate 1.2s infinite ease-in-out',
+      }}
+    />
+  </div>
+);
+
+const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
+  <div data-testid="page-list-error" style={centerBox}>
+    <FiAlertCircle size={40} color={COLORS.danger} />
+    <div style={{ fontWeight: 700, fontSize: 17, color: COLORS.danger }}>Không thể tải danh sách trang</div>
+    <div style={{ color: COLORS.muted, fontSize: 14, maxWidth: 440 }}>{message}</div>
     <button
       type="button"
       onClick={onRetry}
@@ -387,14 +379,14 @@ const InlineError: React.FC<{ message: string; onRetry: () => void }> = ({ messa
 );
 
 const EmptyState: React.FC<{
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   actionLabel: string;
   onAction: () => void;
 }> = ({ icon, title, description, actionLabel, onAction }) => (
   <div data-testid="page-list-empty" style={centerBox}>
-    <div style={{ fontSize: 36 }}>{icon}</div>
+    <div>{icon}</div>
     <div style={{ fontWeight: 700, fontSize: 17 }}>{title}</div>
     <div style={{ color: COLORS.muted, fontSize: 14 }}>{description}</div>
     <button type="button" onClick={onAction} style={actionBtn}>
@@ -410,7 +402,15 @@ const ToastView: React.FC<{ toast: Toast; onClose: () => void; mobile: boolean }
 }) => {
   const color =
     toast.kind === 'success' ? COLORS.published : toast.kind === 'error' ? COLORS.danger : COLORS.primary;
-  const icon = toast.kind === 'success' ? '✅' : toast.kind === 'error' ? '⛔' : 'ℹ️';
+  const icon =
+    toast.kind === 'success' ? (
+      <FiCheckCircle size={18} color={color} />
+    ) : toast.kind === 'error' ? (
+      <FiAlertCircle size={18} color={color} />
+    ) : (
+      <FiInfo size={18} color={color} />
+    );
+
   return (
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
@@ -434,7 +434,7 @@ const ToastView: React.FC<{ toast: Toast; onClose: () => void; mobile: boolean }
         maxWidth: 420,
       }}
     >
-      <span aria-hidden style={{ fontSize: 18 }}>{icon}</span>
+      <span aria-hidden style={{ display: 'inline-flex', marginTop: 2 }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14 }}>{toast.title}</div>
         <div style={{ fontSize: 13, color: COLORS.muted, wordBreak: 'break-word' }}>{toast.message}</div>
@@ -443,9 +443,9 @@ const ToastView: React.FC<{ toast: Toast; onClose: () => void; mobile: boolean }
         type="button"
         onClick={onClose}
         aria-label="Đóng thông báo"
-        style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: COLORS.muted }}
+        style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: COLORS.muted, display: 'inline-flex' }}
       >
-        ✕
+        <FiX size={16} />
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 // PagePagination – "Hiển thị x - y trên tổng số z trang" + page buttons.
 
 import React from 'react';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import type { PaginationMeta } from '../types/page.types';
 import { COLORS } from './PageTableRow';
 
@@ -34,6 +35,9 @@ const btn = (active: boolean, disabled?: boolean): React.CSSProperties => ({
   cursor: disabled ? 'default' : 'pointer',
   background: active ? COLORS.primary : 'transparent',
   color: active ? '#fff' : disabled ? '#c7c9d1' : COLORS.text,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 });
 
 export const PagePagination: React.FC<PagePaginationProps> = ({
@@ -76,26 +80,33 @@ export const PagePagination: React.FC<PagePaginationProps> = ({
           onClick={() => onPageChange(page - 1)}
           style={btn(false, prevDisabled)}
         >
-          ‹
+          <FiChevronLeft size={16} />
         </button>
-        {getPageNumbers(page, totalPages).map((n, i) =>
-          n === '…' ? (
-            <span key={`e${i}`} style={{ padding: '0 4px' }}>
+        {getPageNumbers(page, totalPages).map((p, idx) =>
+          typeof p === 'number' ? (
+            <button
+              key={p}
+              type="button"
+              aria-current={p === page ? 'page' : undefined}
+              disabled={disabled}
+              onClick={() => onPageChange(p)}
+              style={btn(p === page, disabled)}
+            >
+              {p}
+            </button>
+          ) : (
+            <span
+              key={`dots-${idx}`}
+              style={{
+                width: 24,
+                textAlign: 'center',
+                color: COLORS.muted,
+                userSelect: 'none',
+              }}
+            >
               …
             </span>
-          ) : (
-            <button
-              key={n}
-              type="button"
-              aria-label={`Trang ${n}`}
-              aria-current={n === page ? 'page' : undefined}
-              disabled={disabled}
-              onClick={() => n !== page && onPageChange(n)}
-              style={btn(n === page, disabled && n !== page)}
-            >
-              {n}
-            </button>
-          ),
+          )
         )}
         <button
           type="button"
@@ -104,7 +115,7 @@ export const PagePagination: React.FC<PagePaginationProps> = ({
           onClick={() => onPageChange(page + 1)}
           style={btn(false, nextDisabled)}
         >
-          ›
+          <FiChevronRight size={16} />
         </button>
       </div>
     </nav>
