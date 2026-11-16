@@ -1,4 +1,6 @@
-
+import time
+from sqlalchemy import text
+from app.core.security import get_current_user, get_token_claims
 import logging
 
 from sqlalchemy import or_, select
@@ -95,3 +97,28 @@ def login(
         access_token=access_token,
         token_type="bearer"
     )
+
+@router.get("/me")
+def read_current_user(user: User = Depends(get_current_user)):
+    return {"id": user.id, "username": user.username, "role": user.role}
+
+
+@router.post("/logout")
+def logout(
+    claims: dict = Depends(get_token_claims),
+    db: Session = Depends(get_db),
+):
+    db.execute(
+        text("DELETE FROM revoked_tokens WHERE expires_at <= :now"),
+        {"now": int(time.time())},
+    )
+    db.execute(
+        text("""
+            INSERT INTO revoked_tokens (jti, expires_at)
+            VALUES (:jti, :expires_at)
+            ON CONFLICT(jti) DO NOTHING
+        """),
+        {"jti": claims["jti"], "expires_at": claims["exp"]},
+    )
+    db.commit()
+    return {"message": "Da dang xuat"}
