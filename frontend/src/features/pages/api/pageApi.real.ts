@@ -1,8 +1,8 @@
 // Real API client for Page Management – talks to FastAPI backend (S1-T08 / S1-T10).
 // Uses fetch only (no extra dependency). Enabled when USE_MOCK is false.
 
-import {
-  ApiError,
+import { ApiError } from '../types/page.types';
+import type {
   CreatePageRequest,
   DeletePageResponse,
   IPageApi,

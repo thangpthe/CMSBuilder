@@ -19,9 +19,9 @@ import {
   displaySlug,
   formatUpdatedAt,
   iconBtnStyle,
-  PageRowActions,
   StatusBadge,
 } from './PageTableRow';
+import type { PageRowActions } from './PageTableRow';
 
 export interface PageCardListMobileProps extends PageRowActions {
   pages: Page[];

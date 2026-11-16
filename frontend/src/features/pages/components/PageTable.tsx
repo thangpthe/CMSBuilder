@@ -2,7 +2,8 @@
 
 import React from 'react';
 import type { Page } from '../types/page.types';
-import { COLORS, PageRowActions, PageTableRow } from './PageTableRow';
+import { COLORS, PageTableRow } from './PageTableRow';
+import type { PageRowActions } from './PageTableRow';
 
 export interface PageTableProps extends PageRowActions {
   pages: Page[];

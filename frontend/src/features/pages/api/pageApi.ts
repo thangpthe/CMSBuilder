@@ -6,8 +6,8 @@
 // To remove mocks entirely after S1-T08: delete `mockPages.data.ts`, the
 // `pageMockApi` block below, and export `pageRealApi` directly.
 
-import {
-  ApiError,
+import { ApiError } from '../types/page.types';
+import type {
   CreatePageRequest,
   IPageApi,
   Page,
