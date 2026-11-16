@@ -1,4 +1,3 @@
-
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
@@ -15,5 +14,5 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["vite.config.js"]
+  "include": ["vite.config.ts"]
 }
