@@ -1,10 +1,14 @@
 
-import { Navigate, Route, Routes } from "react-router-dom";
+
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import LoginPage from "../pages/auth/LoginPage";
 
 
 import type { ReactNode } from "react";
 import PageBuilderPage from "../pages/page-builder/PageBuilderPage";
+import PageListPage from "../pages/pages-management/PageListPage";
+import PublicPage from "../pages/public/PublicPage";
+
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -31,6 +35,14 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   return children;
 }
 
+function RootRedirect() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get("view") === "public") {
+    return <PublicPage />;
+  }
+  return <Navigate to="/dashboard" replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -55,6 +67,17 @@ function AppRoutes() {
         path="/"
         element={<Navigate to="/page-builder" replace />}
       />
+      <Route path="/pages" element={<PageListPage />} />
+      <Route path="/pages/*" element={<PageListPage />} />
+      <Route path="/admin/pages" element={<PageListPage />} />
+      <Route path="/admin/pages/*" element={<PageListPage />} />
+
+      <Route path="/p" element={<PublicPage />} />
+      <Route path="/p/*" element={<PublicPage />} />
+      <Route path="/public" element={<PublicPage />} />
+      <Route path="/public/*" element={<PublicPage />} />
+
+      <Route path="/" element={<RootRedirect />} />
 
       {/* Route không tồn tại */}
       <Route
