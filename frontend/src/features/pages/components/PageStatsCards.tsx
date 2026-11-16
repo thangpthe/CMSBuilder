@@ -38,24 +38,25 @@ export const PageStatsCards: React.FC<PageStatsCardsProps> = ({ stats, loading, 
     style={{
       display: 'grid',
       gridTemplateColumns: compact ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
-      gap: compact ? 10 : 16,
+      gap: compact ? '0.625rem' : '1rem',
     }}
   >
     {CARDS.map((c) => (
       <div
         key={c.key}
         style={{
-          background: '#fff',
-          borderRadius: 14,
-          padding: compact ? 12 : 16,
+          background: COLORS.surface,
+          borderRadius: '0.875rem',
+          padding: compact ? '0.75rem' : '1rem',
           border: `1px solid ${COLORS.border}`,
           borderBottom: `3px solid ${c.accentBg}`,
+          minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
           <span
             style={{
-              fontSize: 12,
+              fontSize: '0.75rem',
               fontWeight: 600,
               color: COLORS.muted,
               textTransform: compact ? 'none' : 'uppercase',
@@ -67,9 +68,10 @@ export const PageStatsCards: React.FC<PageStatsCardsProps> = ({ stats, loading, 
           <span
             aria-hidden
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
+              flexShrink: 0,
+              width: '2rem',
+              height: '2rem',
+              borderRadius: '0.5rem',
               background: c.accentBg,
               color: c.accent,
               display: 'inline-flex',
@@ -80,10 +82,10 @@ export const PageStatsCards: React.FC<PageStatsCardsProps> = ({ stats, loading, 
             {c.icon}
           </span>
         </div>
-        <div style={{ marginTop: compact ? 6 : 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <div style={{ marginTop: compact ? '0.375rem' : '0.625rem', display: 'flex', alignItems: 'baseline', gap: '0.375rem', flexWrap: 'wrap' }}>
           <span
             style={{
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? '1.375rem' : 'clamp(1.375rem, 2vw, 1.75rem)',
               fontWeight: 700,
               color: COLORS.text,
               fontFeatureSettings: '"tnum"',
@@ -92,7 +94,7 @@ export const PageStatsCards: React.FC<PageStatsCardsProps> = ({ stats, loading, 
             {loading || !stats ? '—' : formatNumber(stats[c.key], compact)}
           </span>
           {c.suffix && !compact && (
-            <span style={{ fontSize: 12, color: COLORS.muted }}>{c.suffix}</span>
+            <span style={{ fontSize: '0.75rem', color: COLORS.muted }}>{c.suffix}</span>
           )}
         </div>
       </div>

@@ -18,18 +18,25 @@ import type { Page, PageStatus } from '../types/page.types';
 /* ------------------------------------------------------------------ */
 
 export const COLORS = {
-  primary: '#4f46e5',
-  primarySoft: '#eef2ff',
-  text: '#111827',
-  muted: '#6b7280',
-  border: '#e5e7eb',
-  bgSoft: '#f5f6fb',
-  published: '#047857',
-  publishedBg: '#d1fae5',
-  draft: '#92400e',
-  draftBg: '#f3e2c7',
-  danger: '#dc2626',
-  dangerSoft: '#fee2e2',
+  primary: 'var(--brand-primary)',
+  primaryHover: 'var(--brand-primary-hover)',
+  primarySoft: 'var(--brand-primary-subtle)',
+  surface: 'var(--bg-surface)',
+  page: 'var(--bg-page)',
+  text: 'var(--text-primary)',
+  textSecondary: 'var(--text-secondary)',
+  muted: 'var(--text-muted)',
+  placeholder: 'var(--text-placeholder)',
+  border: 'var(--border-subtle)',
+  borderStrong: 'var(--border-strong)',
+  bgSoft: 'var(--bg-subtle)',
+  bgMuted: 'var(--bg-muted)',
+  published: 'var(--status-published-text)',
+  publishedBg: 'var(--status-published-bg)',
+  draft: 'var(--status-draft-text)',
+  draftBg: 'var(--status-draft-bg)',
+  danger: 'var(--status-danger-text)',
+  dangerSoft: 'var(--status-danger-bg)',
 };
 
 export function displaySlug(slug: string): string {
@@ -89,10 +96,10 @@ export const StatusBadge: React.FC<{ status: PageStatus }> = ({ status }) => {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '3px 10px',
+        gap: '0.375rem',
+        padding: '0.25rem 0.625rem',
         borderRadius: 999,
-        fontSize: 12,
+        fontSize: '0.75rem',
         fontWeight: 600,
         whiteSpace: 'nowrap',
         color: published ? COLORS.published : COLORS.draft,
@@ -102,8 +109,8 @@ export const StatusBadge: React.FC<{ status: PageStatus }> = ({ status }) => {
       <span
         aria-hidden
         style={{
-          width: 7,
-          height: 7,
+          width: '0.4375rem',
+          height: '0.4375rem',
           borderRadius: '50%',
           background: published ? COLORS.published : COLORS.draft,
         }}
@@ -125,9 +132,11 @@ export const iconBtnStyle: React.CSSProperties = {
   border: 'none',
   background: 'transparent',
   cursor: 'pointer',
-  padding: 6,
-  borderRadius: 8,
-  fontSize: 15,
+  minWidth: '2.75rem',
+  minHeight: '2.75rem',
+  padding: '0.5rem',
+  borderRadius: '0.5rem',
+  fontSize: '0.9375rem',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -145,10 +154,10 @@ export interface PageTableRowProps extends PageRowActions {
 }
 
 const cell: React.CSSProperties = {
-  padding: '14px 16px',
+  padding: '0.75rem 0.5rem',
   borderTop: `1px solid ${COLORS.border}`,
   verticalAlign: 'middle',
-  fontSize: 14,
+  fontSize: '0.875rem',
   color: COLORS.text,
 };
 
@@ -176,16 +185,16 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
       data-testid="page-row"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ background: hover ? '#fafbff' : '#fff', opacity: busy ? 0.6 : 1 }}
+      style={{ background: hover ? COLORS.bgSoft : COLORS.surface, opacity: busy ? 0.6 : 1 }}
     >
-      <td style={{ ...cell, maxWidth: 340 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <td style={{ ...cell, maxWidth: '16.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
           <div
             aria-hidden
             style={{
-              flex: '0 0 40px',
-              height: 40,
-              borderRadius: 10,
+              flex: '0 0 2.5rem',
+              height: '2.5rem',
+              borderRadius: '0.625rem',
               background: COLORS.primarySoft,
               color: COLORS.primary,
               display: 'flex',
@@ -200,7 +209,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
               title={page.title}
               style={{
                 fontWeight: 600,
-                fontSize: 15,
+                fontSize: '0.9375rem',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -208,21 +217,24 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
             >
               {page.title}
             </div>
-            <div style={{ ...clamp2, color: COLORS.muted, fontSize: 13, marginTop: 2 }}>
+            <div style={{ ...clamp2, color: COLORS.muted, fontSize: '0.8125rem', marginTop: '0.125rem' }}>
               {page.description || <em>Chưa có mô tả</em>}
             </div>
           </div>
         </div>
       </td>
       <td style={cell}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <code
             style={{
               background: COLORS.bgSoft,
-              padding: '3px 8px',
-              borderRadius: 6,
-              fontSize: 12.5,
+              padding: '0.1875rem 0.5rem',
+              borderRadius: '0.375rem',
+              fontSize: '0.78125rem',
               whiteSpace: 'nowrap',
+              maxWidth: '9.5rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {displaySlug(page.slug)}

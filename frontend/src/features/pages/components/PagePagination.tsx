@@ -26,15 +26,16 @@ export function getPageNumbers(current: number, total: number): (number | '…')
 }
 
 const btn = (active: boolean, disabled?: boolean): React.CSSProperties => ({
-  minWidth: 32,
-  height: 32,
-  borderRadius: 8,
+  minWidth: '2.75rem',
+  minHeight: '2.75rem',
+  padding: '0 0.5rem',
+  borderRadius: '0.5rem',
   border: 'none',
-  fontSize: 13,
+  fontSize: '0.875rem',
   fontWeight: 600,
   cursor: disabled ? 'default' : 'pointer',
   background: active ? COLORS.primary : 'transparent',
-  color: active ? '#fff' : disabled ? '#c7c9d1' : COLORS.text,
+  color: active ? COLORS.surface : disabled ? COLORS.placeholder : COLORS.text,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -62,9 +63,9 @@ export const PagePagination: React.FC<PagePaginationProps> = ({
         flexDirection: compact ? 'column' : 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 10,
-        padding: compact ? '8px 0' : '12px 16px',
-        fontSize: 14,
+        gap: '0.625rem',
+        padding: compact ? '0.5rem 0.75rem' : '0.75rem 1rem',
+        fontSize: '0.875rem',
         color: COLORS.muted,
       }}
     >
@@ -72,7 +73,7 @@ export const PagePagination: React.FC<PagePaginationProps> = ({
         Hiển thị <strong style={{ color: COLORS.text }}>{from} - {to}</strong> trên tổng số{' '}
         <strong style={{ color: COLORS.text }}>{totalItems}</strong> trang
       </span>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button
           type="button"
           aria-label="Trang trước"

@@ -27,6 +27,7 @@ export interface PageCardListMobileProps extends PageRowActions {
   pages: Page[];
   busyIds?: string[];
   refreshing?: boolean;
+  columns?: 1 | 2;
 }
 
 const initials = (name: string) =>
@@ -41,20 +42,25 @@ const pillBtn = (bg: string, color: string): React.CSSProperties => ({
   border: 'none',
   background: bg,
   color,
-  padding: '7px 12px',
-  borderRadius: 8,
-  fontSize: 13,
+  minHeight: '2.75rem',
+  minWidth: '2.75rem',
+  padding: '0.5rem 0.5rem',
+  borderRadius: '0.5rem',
+  fontSize: '0.75rem',
   fontWeight: 600,
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 6,
+  justifyContent: 'center',
+  gap: '0.25rem',
+  whiteSpace: 'nowrap',
 });
 
 export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
   pages,
   busyIds = [],
   refreshing,
+  columns = 1,
   onEdit,
   onDelete,
   onPreview,
@@ -68,9 +74,9 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
       listStyle: 'none',
       margin: 0,
       padding: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 12,
+      display: 'grid',
+      gridTemplateColumns: columns === 2 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
+      gap: '0.75rem',
       opacity: refreshing ? 0.55 : 1,
     }}
   >
@@ -82,20 +88,20 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
           key={page.id}
           data-testid="page-card"
           style={{
-            background: '#fff',
+            background: COLORS.surface,
             border: `1px solid ${COLORS.border}`,
-            borderRadius: 14,
-            padding: 14,
+            borderRadius: '0.875rem',
+            padding: columns === 1 ? '0.75rem' : '0.875rem',
             opacity: busy ? 0.6 : 1,
           }}
         >
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <div
               aria-hidden
               style={{
-                flex: '0 0 38px',
-                height: 38,
-                borderRadius: 10,
+                flex: '0 0 2.375rem',
+                height: '2.375rem',
+                borderRadius: '0.625rem',
                 background: published ? COLORS.primarySoft : COLORS.draftBg,
                 color: published ? COLORS.primary : COLORS.draft,
                 display: 'flex',
@@ -108,13 +114,17 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
             <div
               title={page.title}
               style={{
-                flex: 1,
-                minWidth: 0,
+                flex: '1 1 7rem',
+                minWidth: '7rem',
                 fontWeight: 600,
-                fontSize: 15,
-                whiteSpace: 'nowrap',
+                fontSize: '0.9375rem',
+                color: COLORS.text,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
               }}
             >
               {page.title}
@@ -124,23 +134,24 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
 
           <div
             style={{
-              marginTop: 10,
+              marginTop: '0.625rem',
               background: COLORS.bgSoft,
-              borderRadius: 8,
-              padding: '7px 10px',
+              borderRadius: '0.5rem',
+              padding: '0.375rem 0.625rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 8,
+              gap: '0.5rem',
+              flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', minWidth: 0, flex: '1 1 8rem' }}>
               {published ? (
                 <FiLink size={14} color={COLORS.primary} />
               ) : (
                 <FiLock size={14} color={COLORS.muted} />
               )}
-              <code style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <code style={{ fontSize: '0.78125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {displaySlug(page.slug)}
               </code>
             </div>
@@ -150,17 +161,18 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 onClick={() => onCopySlug(page)}
                 style={{
                   ...iconBtnStyle,
-                  fontSize: 12,
+                  fontSize: '0.75rem',
                   color: COLORS.primary,
                   fontWeight: 600,
-                  gap: 4,
+                  gap: '0.25rem',
+                  padding: '0.375rem 0.625rem',
                 }}
               >
                 <FiCopy size={13} />
                 <span>Sao chép</span>
               </button>
             ) : (
-              <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: 'italic' }}>
+              <span style={{ fontSize: '0.75rem', color: COLORS.muted, fontStyle: 'italic' }}>
                 Chưa công khai
               </span>
             )}
@@ -168,39 +180,41 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
 
           <div
             style={{
-              marginTop: 10,
+              marginTop: '0.625rem',
               display: 'flex',
               justifyContent: 'space-between',
-              fontSize: 13,
+              flexWrap: 'wrap',
+              gap: '0.375rem',
+              fontSize: '0.8125rem',
               color: COLORS.muted,
             }}
           >
             <span>
               <strong
                 style={{
-                  fontSize: 10,
+                  fontSize: '0.625rem',
                   background: COLORS.bgSoft,
                   borderRadius: 999,
-                  padding: '2px 5px',
-                  marginRight: 6,
+                  padding: '0.125rem 0.3125rem',
+                  marginRight: '0.375rem',
                 }}
               >
                 {initials(page.author.name)}
               </strong>
               {page.author.name}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <FiClock size={12} />
               <span>{formatUpdatedAt(page.updatedAt).split(' • ')[0]}</span>
             </span>
           </div>
 
-          <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               disabled={busy}
               onClick={() => onEdit(page)}
-              style={pillBtn(COLORS.primary, '#fff')}
+              style={pillBtn(COLORS.primary, COLORS.surface)}
             >
               <FiEdit size={14} />
               <span>{published ? 'Sửa' : 'Tiếp tục sửa'}</span>
@@ -209,7 +223,7 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               <button
                 type="button"
                 onClick={() => onPreview(page)}
-                style={pillBtn('transparent', COLORS.text)}
+                style={pillBtn(COLORS.bgSoft, COLORS.text)}
               >
                 <FiEye size={14} />
                 <span>Xem trước</span>
@@ -219,7 +233,7 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
                 type="button"
                 disabled={busy}
                 onClick={() => onToggleStatus(page)}
-                style={pillBtn(COLORS.published, '#fff')}
+                style={pillBtn(COLORS.published, COLORS.surface)}
               >
                 <FiUploadCloud size={14} />
                 <span>Xuất bản ngay</span>

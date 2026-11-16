@@ -48,12 +48,13 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
       aria-label="Lọc theo trạng thái"
       style={{
         display: 'flex',
-        gap: 4,
-        padding: 4,
-        borderRadius: 12,
+        flexWrap: 'wrap',
+        gap: '0.25rem',
+        padding: '0.25rem',
+        borderRadius: '0.75rem',
         background: compact ? 'transparent' : COLORS.bgSoft,
-        overflowX: 'auto',
-        flex: compact ? 1 : undefined,
+        flex: compact ? '1 1 100%' : '0 1 auto',
+        minWidth: 0,
       }}
     >
       {TABS.map((t) => {
@@ -68,26 +69,32 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: 10,
-              fontSize: 14,
+              minHeight: '2.75rem',
+              minWidth: '2.75rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.625rem',
+              fontSize: '0.875rem',
               fontWeight: active ? 600 : 500,
               whiteSpace: 'nowrap',
-              background: active ? (compact ? COLORS.primary : '#fff') : compact ? '#fff' : 'transparent',
-              color: active ? (compact ? '#fff' : COLORS.primary) : COLORS.text,
-              boxShadow: active && !compact ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: active ? (compact ? COLORS.primary : COLORS.surface) : compact ? COLORS.surface : 'transparent',
+              color: active ? (compact ? COLORS.surface : COLORS.primary) : COLORS.text,
+              boxShadow: active && !compact ? 'var(--shadow-sm)' : undefined,
             }}
           >
             {t.label}
             {stats && (
               <span
                 style={{
-                  marginLeft: 6,
-                  fontSize: 11,
+                  marginLeft: '0.375rem',
+                  fontSize: '0.6875rem',
                   fontWeight: 700,
-                  padding: '1px 7px',
+                  padding: '0.0625rem 0.4375rem',
                   borderRadius: 999,
-                  background: active && compact ? 'rgba(255,255,255,.25)' : COLORS.primarySoft,
+                  background: active && compact ? COLORS.surface : COLORS.primarySoft,
+                  color: COLORS.primary,
                 }}
               >
                 {stats[t.statKey]}
@@ -104,17 +111,20 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        background: compact ? '#fff' : COLORS.bgSoft,
+        gap: '0.5rem',
+        background: compact ? COLORS.surface : COLORS.bgSoft,
         border: compact ? `1px solid ${COLORS.border}` : 'none',
-        borderRadius: 10,
-        padding: '8px 12px',
-        flex: 1,
-        minWidth: compact ? undefined : 260,
-        maxWidth: compact ? undefined : 340,
+        borderRadius: '0.625rem',
+        padding: '0 0.75rem',
+        minHeight: '2.75rem',
+        flex: compact ? '0 0 auto' : '1 1 13rem',
+        minWidth: 0,
+        maxWidth: compact ? '100%' : '21.25rem',
+        width: compact ? '100%' : undefined,
+        boxSizing: 'border-box',
       }}
     >
-      <FiSearch size={16} color={COLORS.muted} aria-hidden />
+      <FiSearch size={16} color={COLORS.muted} aria-hidden style={{ flexShrink: 0 }} />
       <input
         type="search"
         value={search}
@@ -125,27 +135,44 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
           border: 'none',
           outline: 'none',
           background: 'transparent',
-          fontSize: 14,
+          color: COLORS.text,
+          fontSize: '0.875rem',
+          minHeight: '2.75rem',
           width: '100%',
+          minWidth: 0,
         }}
       />
     </label>
   );
 
   const sortSelect = (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: COLORS.muted }}>
-      <LuArrowUpDown size={15} color={COLORS.muted} aria-hidden />
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.375rem',
+        fontSize: '0.875rem',
+        color: COLORS.muted,
+        flex: compact ? '1 1 auto' : '0 0 auto',
+        minWidth: 0,
+      }}
+    >
+      <LuArrowUpDown size={15} color={COLORS.muted} aria-hidden style={{ flexShrink: 0 }} />
       <select
         value={sort}
         aria-label="Sắp xếp"
         onChange={(e) => onSortChange(e.target.value as PageSort)}
         style={{
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 8,
-          padding: '7px 8px',
-          fontSize: 14,
-          background: '#fff',
+          border: `1px solid ${COLORS.borderStrong}`,
+          borderRadius: '0.5rem',
+          minHeight: '2.75rem',
+          padding: '0.5rem 0.625rem',
+          fontSize: '0.875rem',
+          color: COLORS.text,
+          background: COLORS.surface,
           cursor: 'pointer',
+          width: compact ? '100%' : undefined,
+          maxWidth: '100%',
         }}
       >
         {SORT_OPTIONS.map((o) => (
@@ -165,10 +192,12 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
       style={{
         border: 'none',
         background: COLORS.primary,
-        color: '#fff',
-        borderRadius: compact ? 12 : 10,
-        padding: compact ? '12px 16px' : '9px 16px',
-        fontSize: compact ? 16 : 14,
+        color: COLORS.surface,
+        borderRadius: compact ? '0.75rem' : '0.625rem',
+        minHeight: '2.75rem',
+        minWidth: '2.75rem',
+        padding: compact ? '0.75rem 1rem' : '0.625rem 1rem',
+        fontSize: compact ? '1rem' : '0.875rem',
         fontWeight: 600,
         cursor: 'pointer',
         width: compact ? '100%' : undefined,
@@ -176,7 +205,7 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
+        gap: '0.375rem',
       }}
     >
       <FiPlus size={16} />
@@ -186,9 +215,9 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
 
   if (compact) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         {searchBox}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
           {tabs}
           {sortSelect}
         </div>
@@ -202,19 +231,21 @@ export const PageToolbar: React.FC<PageToolbarProps> = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
+        gap: '0.75rem',
         flexWrap: 'wrap',
-        background: '#fff',
+        background: COLORS.surface,
         border: `1px solid ${COLORS.border}`,
-        borderRadius: 14,
-        padding: 10,
+        borderRadius: '0.875rem',
+        padding: '0.625rem',
       }}
     >
       {tabs}
-      <span style={{ flex: 1 }} />
-      {searchBox}
-      {sortSelect}
-      {createBtn}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap', flex: '1 1 22rem', justifyContent: 'flex-end', minWidth: 0 }}>
+        {searchBox}
+        {sortSelect}
+        {createBtn}
+      </div>
     </div>
   );
 };

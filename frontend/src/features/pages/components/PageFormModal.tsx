@@ -8,6 +8,7 @@ import {
   SLUG_MAX_LENGTH,
   TITLE_MAX_LENGTH,
 } from '../utils/pageHelpers';
+import { COLORS } from './PageTableRow';
 
 export interface PageFormModalProps {
   isOpen: boolean;
@@ -17,156 +18,174 @@ export interface PageFormModalProps {
   onSuccess: (page: Page, message: string) => void;
 }
 
-const COLORS = {
-  primary: '#4F46E5',
-  primaryHover: '#4338CA',
-  danger: '#DC2626',
-  dangerBg: '#FEF2F2',
-  text: '#111827',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  inputBg: '#F9FAFB',
-  green: '#059669',
-  greenBg: '#D1FAE5',
-  amber: '#92400E',
-  amberBg: '#FDE68A',
-};
-
 const styles: Record<string, CSSProperties> = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(17, 24, 39, 0.5)',
+    background: 'rgba(15, 23, 42, 0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: '1rem',
     zIndex: 1000,
   },
   dialog: {
     width: '100%',
-    maxWidth: 560,
-    maxHeight: 'calc(100vh - 32px)',
-    overflowY: 'auto',
-    background: '#fff',
-    borderRadius: 16,
-    boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+    maxWidth: '35rem',
+    maxHeight: 'calc(100dvh - 2rem)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    background: COLORS.surface,
+    borderRadius: '1rem',
+    boxShadow: 'var(--shadow-lg)',
     fontFamily: 'inherit',
     color: COLORS.text,
   },
   header: {
+    flexShrink: 0,
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    padding: '20px 24px 12px',
+    gap: '0.75rem',
+    padding: '1rem 1.25rem 0.75rem',
     borderBottom: `1px solid ${COLORS.border}`,
   },
-  title: { margin: 0, fontSize: 20, fontWeight: 700 },
-  subtitle: { margin: '4px 0 0', fontSize: 14, color: COLORS.muted },
+  title: { margin: 0, fontSize: '1.25rem', fontWeight: 700, color: COLORS.text },
+  subtitle: { margin: '0.25rem 0 0', fontSize: '0.875rem', color: COLORS.muted },
   closeBtn: {
     border: 'none',
     background: 'transparent',
-    fontSize: 22,
+    fontSize: '1.375rem',
     lineHeight: 1,
     cursor: 'pointer',
     color: COLORS.muted,
-    padding: 4,
+    minWidth: '2.75rem',
+    minHeight: '2.75rem',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '0.5rem',
+    flexShrink: 0,
   },
-  body: { padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 16 },
-  field: { display: 'flex', flexDirection: 'column', gap: 6 },
-  labelRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-  label: { fontSize: 14, fontWeight: 600 },
-  required: { color: COLORS.danger, marginLeft: 2 },
-  counter: { fontSize: 12, color: COLORS.muted },
+  body: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '1rem 1.25rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  field: { display: 'flex', flexDirection: 'column', gap: '0.375rem' },
+  labelRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.5rem' },
+  label: { fontSize: '0.875rem', fontWeight: 600, color: COLORS.text },
+  required: { color: COLORS.danger, marginLeft: '0.125rem' },
+  counter: { fontSize: '0.75rem', color: COLORS.muted },
   input: {
     width: '100%',
+    minHeight: '2.75rem',
     boxSizing: 'border-box',
-    padding: '10px 12px',
-    fontSize: 14,
+    padding: '0.625rem 0.75rem',
+    fontSize: '0.875rem',
+    color: COLORS.text,
     border: `1px solid ${COLORS.border}`,
-    borderRadius: 10,
-    background: COLORS.inputBg,
+    borderRadius: '0.625rem',
+    background: COLORS.bgSoft,
     outline: 'none',
     fontFamily: 'inherit',
   },
-  slugWrap: { display: 'flex', alignItems: 'stretch', gap: 8 },
+  slugWrap: { display: 'flex', alignItems: 'stretch', gap: '0.5rem', flexWrap: 'wrap' },
   slugPrefix: {
     display: 'flex',
     alignItems: 'center',
-    padding: '0 10px',
-    background: '#EEF2FF',
+    minHeight: '2.75rem',
+    padding: '0 0.625rem',
+    background: COLORS.primarySoft,
     color: COLORS.primary,
-    borderRadius: 10,
+    borderRadius: '0.625rem',
     fontFamily: 'monospace',
-    fontSize: 14,
+    fontSize: '0.875rem',
   },
   linkBtn: {
-    border: `1px solid ${COLORS.border}`,
-    background: '#fff',
-    borderRadius: 10,
-    padding: '0 10px',
-    fontSize: 13,
+    border: `1px solid ${COLORS.borderStrong}`,
+    background: COLORS.surface,
+    borderRadius: '0.625rem',
+    minHeight: '2.75rem',
+    padding: '0 0.75rem',
+    fontSize: '0.8125rem',
+    fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     color: COLORS.primary,
   },
-  hint: { fontSize: 12, color: COLORS.muted, margin: 0 },
-  error: { fontSize: 12, color: COLORS.danger, margin: 0 },
+  hint: { fontSize: '0.75rem', color: COLORS.muted, margin: 0 },
+  error: { fontSize: '0.75rem', color: COLORS.danger, margin: 0 },
   formError: {
-    background: COLORS.dangerBg,
+    background: COLORS.dangerSoft,
     color: COLORS.danger,
-    border: `1px solid #FECACA`,
-    borderRadius: 10,
-    padding: '10px 12px',
-    fontSize: 14,
+    border: `1px solid ${COLORS.danger}`,
+    borderRadius: '0.625rem',
+    padding: '0.625rem 0.75rem',
+    fontSize: '0.875rem',
   },
-  statusGroup: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  statusGroup: { display: 'flex', gap: '0.75rem', flexWrap: 'wrap' },
   statusOption: {
-    flex: '1 1 160px',
+    flex: '1 1 10rem',
+    minHeight: '2.75rem',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '10px 12px',
+    gap: '0.5rem',
+    padding: '0.625rem 0.75rem',
     border: `1px solid ${COLORS.border}`,
-    borderRadius: 10,
+    borderRadius: '0.625rem',
     cursor: 'pointer',
-    fontSize: 14,
+    fontSize: '0.875rem',
   },
   footer: {
+    flexShrink: 0,
     display: 'flex',
     justifyContent: 'flex-end',
-    gap: 12,
-    padding: '12px 24px 20px',
+    gap: '0.75rem',
+    padding: '0.75rem 1.25rem 1rem',
     borderTop: `1px solid ${COLORS.border}`,
+    background: COLORS.surface,
     flexWrap: 'wrap',
   },
   secondaryBtn: {
-    padding: '10px 18px',
-    borderRadius: 10,
-    border: `1px solid ${COLORS.border}`,
-    background: '#fff',
-    fontSize: 14,
+    minHeight: '2.75rem',
+    minWidth: '2.75rem',
+    padding: '0.625rem 1.125rem',
+    borderRadius: '0.625rem',
+    border: `1px solid ${COLORS.borderStrong}`,
+    background: COLORS.surface,
+    color: COLORS.text,
+    fontSize: '0.875rem',
     fontWeight: 600,
     cursor: 'pointer',
   },
   primaryBtn: {
-    padding: '10px 18px',
-    borderRadius: 10,
+    minHeight: '2.75rem',
+    minWidth: '2.75rem',
+    padding: '0.625rem 1.125rem',
+    borderRadius: '0.625rem',
     border: 'none',
     background: COLORS.primary,
-    color: '#fff',
-    fontSize: 14,
+    color: COLORS.surface,
+    fontSize: '0.875rem',
     fontWeight: 600,
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
   spinner: {
-    width: 14,
-    height: 14,
+    width: '0.875rem',
+    height: '0.875rem',
     border: '2px solid rgba(255,255,255,0.4)',
-    borderTopColor: '#fff',
+    borderTopColor: COLORS.surface,
     borderRadius: '50%',
     display: 'inline-block',
     animation: 'pf-spin 0.8s linear infinite',
@@ -179,7 +198,7 @@ function inputStyle(hasError: boolean, disabled: boolean): CSSProperties {
   return {
     ...styles.input,
     borderColor: hasError ? COLORS.danger : COLORS.border,
-    background: hasError ? COLORS.dangerBg : COLORS.inputBg,
+    background: hasError ? COLORS.dangerSoft : COLORS.bgSoft,
     opacity: disabled ? 0.7 : 1,
   };
 }
@@ -256,7 +275,11 @@ export const PageFormModal: React.FC<PageFormModalProps> = ({
     <div style={styles.overlay} onMouseDown={handleOverlayClick} data-testid="page-form-modal">
       <style>{SPINNER_KEYFRAMES}</style>
       <div role="dialog" aria-modal="true" aria-labelledby={ids.heading} style={styles.dialog}>
-        <form onSubmit={handleSubmit} noValidate>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+        >
           <div style={styles.header}>
             <div>
               <h2 id={ids.heading} style={styles.title}>
@@ -339,7 +362,7 @@ export const PageFormModal: React.FC<PageFormModalProps> = ({
                   disabled={isSubmitting}
                   aria-invalid={!!errors.slug}
                   aria-describedby={`${ids.slug}-hint`}
-                  style={{ ...inputStyle(!!errors.slug, isSubmitting), fontFamily: 'monospace' }}
+                  style={{ ...inputStyle(!!errors.slug, isSubmitting), fontFamily: 'monospace', flex: '1 1 10rem', minWidth: 0 }}
                 />
                 <button
                   type="button"
@@ -407,8 +430,8 @@ export const PageFormModal: React.FC<PageFormModalProps> = ({
               <div style={styles.statusGroup} role="radiogroup">
                 {(
                   [
-                    { value: 'draft', label: 'Bản nháp', color: COLORS.amber, bg: COLORS.amberBg },
-                    { value: 'published', label: 'Đã xuất bản', color: COLORS.green, bg: COLORS.greenBg },
+                    { value: 'draft', label: 'Bản nháp', color: COLORS.draft, bg: COLORS.draftBg },
+                    { value: 'published', label: 'Đã xuất bản', color: COLORS.published, bg: COLORS.publishedBg },
                   ] as const
                 ).map((opt) => {
                   const checked = values.status === opt.value;
@@ -418,7 +441,7 @@ export const PageFormModal: React.FC<PageFormModalProps> = ({
                       style={{
                         ...styles.statusOption,
                         borderColor: checked ? opt.color : COLORS.border,
-                        background: checked ? opt.bg : '#fff',
+                        background: checked ? opt.bg : COLORS.surface,
                         color: checked ? opt.color : COLORS.text,
                         fontWeight: checked ? 600 : 400,
                         opacity: isSubmitting ? 0.7 : 1,

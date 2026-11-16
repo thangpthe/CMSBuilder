@@ -22,18 +22,19 @@ import { COLORS, copyText, displaySlug } from './components/PageTableRow';
 import { PageFormModal } from './components/PageFormModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 
-const MOBILE_QUERY = '(max-width: 768px)';
+const MOBILE_QUERY = '(max-width: 767px)';
+const CARD_VIEW_QUERY = '(max-width: 1023px)';
 
-function useIsMobile(): boolean {
+function useMediaQuery(query: string): boolean {
   const get = () =>
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia(MOBILE_QUERY).matches
+      ? window.matchMedia(query).matches
       : false;
-  const [isMobile, setIsMobile] = useState(get);
+  const [matches, setMatches] = useState(get);
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mql = window.matchMedia(MOBILE_QUERY);
-    const onChange = () => setIsMobile(mql.matches);
+    const mql = window.matchMedia(query);
+    const onChange = () => setMatches(mql.matches);
     onChange();
     if (mql.addEventListener) mql.addEventListener('change', onChange);
     else mql.addListener(onChange);
@@ -41,8 +42,8 @@ function useIsMobile(): boolean {
       if (mql.removeEventListener) mql.removeEventListener('change', onChange);
       else mql.removeListener(onChange);
     };
-  }, []);
-  return isMobile;
+  }, [query]);
+  return matches;
 }
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -59,7 +60,8 @@ export interface PageManagementViewProps {
 }
 
 export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPreview }) => {
-  const isMobile = useIsMobile();
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const useCardView = useMediaQuery(CARD_VIEW_QUERY);
   const list = usePages();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -176,32 +178,39 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
     <div
       style={{
         width: '100%',
-        maxWidth: 1200,
+        maxWidth: '75rem',
         margin: '0 auto',
-        padding: isMobile ? '16px 12px 64px' : '24px 24px 48px',
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        padding: isMobile ? '1rem 0.75rem 4rem' : '1.5rem 1.5rem 3rem',
+        fontFamily: 'inherit',
         color: COLORS.text,
         boxSizing: 'border-box',
       }}
     >
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, margin: 0, letterSpacing: -0.5 }}>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <h1
+          style={{
+            fontSize: 'clamp(1.375rem, 2.5vw, 1.75rem)',
+            fontWeight: 700,
+            margin: 0,
+            letterSpacing: -0.5,
+            color: COLORS.text,
+          }}
+        >
           Danh sách trang
         </h1>
-        <p style={{ margin: '4px 0 0', color: COLORS.muted, fontSize: isMobile ? 13 : 14 }}>
+        <p style={{ margin: '0.25rem 0 0', color: COLORS.muted, fontSize: isMobile ? '0.8125rem' : '0.875rem' }}>
           Quản lý, chỉnh sửa, gỡ xuất bản và chia sẻ liên kết các trang nội dung.
         </p>
       </div>
 
       {/* Summary stats */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: '1rem' }}>
         <PageStatsCards stats={list.stats} loading={list.loading} compact={isMobile} />
       </div>
 
       {/* Toolbar */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: '1rem' }}>
         <PageToolbar
           status={list.status}
           search={list.search}
@@ -216,7 +225,15 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
       </div>
 
       {/* Main content body: loading / error / empty / list */}
-      <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+      <div
+        style={{
+          background: COLORS.surface,
+          borderRadius: '0.875rem',
+          border: `1px solid ${COLORS.border}`,
+          overflow: 'hidden',
+          maxWidth: '100%',
+        }}
+      >
         {showInitialLoading && <LoadingSkeleton compact={isMobile} />}
 
         {!showInitialLoading && list.error && (
@@ -249,12 +266,13 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
         {!showInitialLoading && !list.error && list.items.length > 0 && (
           <>
             {list.loading && <InlineRefreshBar />}
-            {isMobile ? (
-              <div style={{ padding: 12 }}>
+            {useCardView ? (
+              <div style={{ padding: isMobile ? '0.5rem' : '1rem' }}>
                 <PageCardListMobile
                   pages={list.items}
                   busyIds={busyIds}
                   refreshing={list.loading}
+                  columns={isMobile ? 1 : 2}
                   {...rowActions}
                 />
               </div>
@@ -316,26 +334,28 @@ const centerBox: React.CSSProperties = {
 };
 
 const actionBtn: React.CSSProperties = {
-  marginTop: 6,
+  marginTop: '0.375rem',
   border: 'none',
   background: COLORS.primary,
-  color: '#fff',
-  borderRadius: 10,
-  padding: '9px 18px',
-  fontSize: 14,
+  color: COLORS.surface,
+  borderRadius: '0.625rem',
+  minHeight: '2.75rem',
+  minWidth: '2.75rem',
+  padding: '0.625rem 1.125rem',
+  fontSize: '0.875rem',
   fontWeight: 600,
   cursor: 'pointer',
 };
 
 const LoadingSkeleton: React.FC<{ compact?: boolean }> = ({ compact }) => (
-  <div style={{ padding: compact ? 12 : 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+  <div style={{ padding: compact ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
     {Array.from({ length: 5 }).map((_, i) => (
       <div
         key={i}
         style={{
-          height: compact ? 90 : 54,
-          borderRadius: 10,
-          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+          height: compact ? '5.625rem' : '3.375rem',
+          borderRadius: '0.625rem',
+          background: `linear-gradient(90deg, ${COLORS.bgSoft} 25%, ${COLORS.bgMuted} 50%, ${COLORS.bgSoft} 75%)`,
           backgroundSize: '200% 100%',
           animation: 'shimmer 1.5s infinite',
         }}
@@ -371,7 +391,16 @@ const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ messag
     <button
       type="button"
       onClick={onRetry}
-      style={{ border: 'none', background: 'transparent', color: COLORS.danger, fontWeight: 700, cursor: 'pointer' }}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        color: COLORS.danger,
+        fontWeight: 700,
+        cursor: 'pointer',
+        minHeight: '2.75rem',
+        minWidth: '2.75rem',
+        padding: '0.5rem 1rem',
+      }}
     >
       Thử lại
     </button>
@@ -425,25 +454,37 @@ const ToastView: React.FC<{ toast: Toast; onClose: () => void; mobile: boolean }
         display: 'flex',
         gap: 12,
         alignItems: 'flex-start',
-        background: '#fff',
-        borderRadius: 12,
+        background: COLORS.surface,
+        borderRadius: '0.75rem',
         borderLeft: `4px solid ${color}`,
-        boxShadow: '0 10px 30px rgba(17,24,39,.15)',
-        padding: '12px 14px',
-        minWidth: mobile ? undefined : 320,
-        maxWidth: 420,
+        boxShadow: 'var(--shadow-lg)',
+        padding: '0.75rem 0.875rem',
+        minWidth: mobile ? undefined : '20rem',
+        maxWidth: '26.25rem',
       }}
     >
       <span aria-hidden style={{ display: 'inline-flex', marginTop: 2 }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>{toast.title}</div>
-        <div style={{ fontSize: 13, color: COLORS.muted, wordBreak: 'break-word' }}>{toast.message}</div>
+        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: COLORS.text }}>{toast.title}</div>
+        <div style={{ fontSize: '0.8125rem', color: COLORS.muted, wordBreak: 'break-word' }}>{toast.message}</div>
       </div>
       <button
         type="button"
         onClick={onClose}
         aria-label="Đóng thông báo"
-        style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: COLORS.muted, display: 'inline-flex' }}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          fontSize: '1rem',
+          color: COLORS.muted,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: '2.75rem',
+          minHeight: '2.75rem',
+          borderRadius: '0.5rem',
+        }}
       >
         <FiX size={16} />
       </button>

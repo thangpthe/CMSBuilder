@@ -13,11 +13,11 @@ export interface PageTableProps extends PageRowActions {
 }
 
 const th: React.CSSProperties = {
-  padding: '12px 16px',
+  padding: '0.75rem 0.5rem',
   textAlign: 'left',
-  fontSize: 12,
+  fontSize: '0.75rem',
   fontWeight: 700,
-  letterSpacing: 0.6,
+  letterSpacing: 0.5,
   textTransform: 'uppercase',
   color: COLORS.muted,
   background: COLORS.bgSoft,
@@ -30,11 +30,11 @@ export const PageTable: React.FC<PageTableProps> = ({
   refreshing,
   ...actions
 }) => (
-  <div style={{ overflowX: 'auto', opacity: refreshing ? 0.55 : 1, transition: 'opacity .15s' }}>
+  <div style={{ overflowX: 'auto', maxWidth: '100%', opacity: refreshing ? 0.55 : 1, transition: 'opacity .15s' }}>
     <table
       data-testid="page-table"
       aria-busy={refreshing || undefined}
-      style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}
+      style={{ width: '100%', borderCollapse: 'collapse' }}
     >
       <thead>
         <tr>
