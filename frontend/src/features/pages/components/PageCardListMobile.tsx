@@ -12,6 +12,7 @@ import {
   FiUploadCloud,
   FiSlash,
   FiTrash2,
+  FiLayout,
 } from 'react-icons/fi';
 import type { Page } from '../types/page.types';
 import {
@@ -66,6 +67,7 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
   onPreview,
   onToggleStatus,
   onCopySlug,
+  onBuildContent,
 }) => (
   <ul
     data-testid="page-card-list"
@@ -240,6 +242,18 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               </button>
             )}
             <span style={{ flex: 1 }} />
+            {onBuildContent && (
+              <button
+                type="button"
+                disabled={busy}
+                title="Soạn nội dung"
+                aria-label={`Soạn nội dung ${page.title}`}
+                onClick={() => onBuildContent(page)}
+                style={{ ...iconBtnStyle, color: COLORS.primary }}
+              >
+                <FiLayout size={16} />
+              </button>
+            )}
             {published && (
               <button
                 type="button"

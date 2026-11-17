@@ -10,6 +10,7 @@ import {
   FiUploadCloud,
   FiSlash,
   FiUser,
+  FiLayout,
 } from 'react-icons/fi';
 import type { Page, PageStatus } from '../types/page.types';
 
@@ -126,6 +127,7 @@ export interface PageRowActions {
   onPreview: (page: Page) => void;
   onToggleStatus: (page: Page) => void;
   onCopySlug: (page: Page) => void;
+  onBuildContent?: (page: Page) => void;
 }
 
 export const iconBtnStyle: React.CSSProperties = {
@@ -176,6 +178,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
   onPreview,
   onToggleStatus,
   onCopySlug,
+  onBuildContent,
 }) => {
   const [hover, setHover] = useState(false);
   const published = page.status === 'published';
@@ -263,6 +266,18 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
         </div>
       </td>
       <td style={{ ...cell, whiteSpace: 'nowrap', textAlign: 'right' }}>
+        {onBuildContent && (
+          <button
+            type="button"
+            style={iconBtnStyle}
+            title="Soạn nội dung"
+            aria-label={`Soạn nội dung ${page.title}`}
+            disabled={busy}
+            onClick={() => onBuildContent(page)}
+          >
+            <FiLayout size={16} color={COLORS.primary} />
+          </button>
+        )}
         <button
           type="button"
           style={iconBtnStyle}

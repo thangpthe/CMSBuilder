@@ -31,7 +31,7 @@ export default function Topbar({
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/dashboard');
+    navigate('/pages');
   };
 
   return (
@@ -49,7 +49,21 @@ export default function Topbar({
         <div className="breadcrumb">
           <span>CMS Workspace</span>
           <ChevronRight size={14} />
-          <strong>Quản lý trang</strong>
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+              font: 'inherit',
+              fontWeight: 600,
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            Quản lý trang
+          </button>
         </div>
 
         <div className="global-search">

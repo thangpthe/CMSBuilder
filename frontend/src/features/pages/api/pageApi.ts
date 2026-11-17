@@ -1,8 +1,8 @@
 // Page API service (S1-T09).
 // Components/hooks must ONLY use `pageApi` from this file – never fetch directly.
 //
-// Switching: mock data is used by default. Set REACT_APP_USE_MOCK=false
-// (CRA) or VITE_USE_MOCK=false (Vite) to use the real FastAPI client.
+// Switching: real API is used by default. Set VITE_USE_MOCK=true (or
+// REACT_APP_USE_MOCK=true) to use localStorage-backed mock data.
 // To remove mocks entirely after S1-T08: delete `mockPages.data.ts`, the
 // `pageMockApi` block below, and export `pageRealApi` directly.
 
@@ -23,7 +23,7 @@ import {
   MOCK_WEEKLY_VIEWS,
 } from './mockPages.data';
 
-export const USE_MOCK = readEnv('USE_MOCK') !== 'false';
+export const USE_MOCK = readEnv('USE_MOCK') === 'true';
 
 export const DEFAULT_PAGE_LIMIT = 5;
 

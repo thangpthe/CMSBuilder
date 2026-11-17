@@ -1,14 +1,9 @@
-
-
 import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
-import LoginPage from "../pages/auth/LoginPage";
-
-
 import type { ReactNode } from "react";
+import LoginPage from "../pages/auth/LoginPage";
 import PageBuilderPage from "../pages/page-builder/PageBuilderPage";
 import PageListPage from "../pages/pages-management/PageListPage";
 import PublicPage from "../pages/public/PublicPage";
-
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -40,7 +35,7 @@ function RootRedirect() {
   if (searchParams.get("view") === "public") {
     return <PublicPage />;
   }
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/page-builder" replace />;
 }
 
 function AppRoutes() {
@@ -49,8 +44,23 @@ function AppRoutes() {
       {/* Login */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Page Builder - tạm thời cho phép truy cập trực tiếp để kiểm tra UI */}
-      <Route path="/page-builder" element={<PageBuilderPage />} />
+      {/* Page Builder */}
+      <Route
+        path="/page-builder"
+        element={
+          <ProtectedRoute>
+            <PageBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/page-builder/*"
+        element={
+          <ProtectedRoute>
+            <PageBuilderPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Dashboard */}
       <Route
@@ -62,21 +72,47 @@ function AppRoutes() {
         }
       />
 
-      {/* Trang mặc định */}
+      {/* Page Management */}
       <Route
-        path="/"
-        element={<Navigate to="/page-builder" replace />}
+        path="/pages"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
       />
-      <Route path="/pages" element={<PageListPage />} />
-      <Route path="/pages/*" element={<PageListPage />} />
-      <Route path="/admin/pages" element={<PageListPage />} />
-      <Route path="/admin/pages/*" element={<PageListPage />} />
+      <Route
+        path="/pages/*"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pages"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pages/*"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
 
+      {/* Public Page */}
       <Route path="/p" element={<PublicPage />} />
       <Route path="/p/*" element={<PublicPage />} />
       <Route path="/public" element={<PublicPage />} />
       <Route path="/public/*" element={<PublicPage />} />
 
+      {/* Trang mặc định */}
       <Route path="/" element={<RootRedirect />} />
 
       {/* Route không tồn tại */}

@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Check,
   Monitor,
@@ -13,6 +14,7 @@ import Topbar from '../../components/page-builder/Topbar';
 import BlockEditor from '../../components/page-builder/BlockEditor';
 import SettingsPanel from '../../components/page-builder/SettingsPanel';
 import { initialBlocks } from '../../components/page-builder/data/initialBlocks';
+import { pageApi } from '../../features/pages/api/pageApi';
 import type {
   Block,
   BlockType,
@@ -23,94 +25,60 @@ import { extractYouTubeId } from '../../utils/slugify';
 
 import '../../components/page-builder/styles.css';
 
-const STORAGE_KEY = 'cmsbuilder-page-draft';
+const DEFAULT_STORAGE_KEY = 'cmsbuilder-page-draft';
+const DEFAULT_TITLE = 'Giới thiệu sản phẩm mới | CMSBuilder';
+const DEFAULT_SLUG = 'gioi-thieu-san-pham-moi';
+const DEFAULT_DESCRIPTION =
+  'Khám phá các tính năng đột phá của nền tảng CMSBuilder thông minh. Tối ưu hóa quy trình quản trị nội dung, nâng cao hiệu suất và trải nghiệm người dùng.';
 
 const makeId = (): string =>
   `${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
 
+function getDraftStorageKey(pageId: string | null, pageSlug: string | null): string {
+  if (pageId) return `${DEFAULT_STORAGE_KEY}-id-${pageId}`;
+  if (pageSlug) return `${DEFAULT_STORAGE_KEY}-slug-${pageSlug.replace(/^\/+/, '')}`;
+  return DEFAULT_STORAGE_KEY;
+}
+
+function readDraft(key: string): PageDraft | null {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      return JSON.parse(saved) as PageDraft;
+    }
+  } catch {
+    // Fallback
+  }
+  return null;
+}
+
 export default function PageBuilderPage() {
+  const [searchParams] = useSearchParams();
+  const pageId = searchParams.get('id');
+  const pageSlug = searchParams.get('slug');
+  const storageKey = useMemo(() => getDraftStorageKey(pageId, pageSlug), [pageId, pageSlug]);
+
+  const initialDraft = useMemo(() => readDraft(storageKey), [storageKey]);
+
   // Tải bản nháp từ LocalStorage nếu có
-  const [blocks, setBlocks] = useState<Block[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
-          return parsed.blocks;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-    return initialBlocks;
-  });
+  const [blocks, setBlocks] = useState<Block[]>(() =>
+    initialDraft && Array.isArray(initialDraft.blocks) && initialDraft.blocks.length > 0
+      ? initialDraft.blocks
+      : initialBlocks
+  );
 
-  const [selectedId, setSelectedId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
-          return parsed.blocks[0].id;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-    return initialBlocks[0]?.id ?? '';
-  });
+  const [selectedId, setSelectedId] = useState<string>(() =>
+    initialDraft && Array.isArray(initialDraft.blocks) && initialDraft.blocks.length > 0
+      ? initialDraft.blocks[0].id
+      : initialBlocks[0]?.id ?? ''
+  );
 
-  const [title, setTitle] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (parsed.title) return parsed.title;
-      }
-    } catch {
-      // Fallback
-    }
-    return 'Giới thiệu sản phẩm mới | CMSBuilder';
-  });
-
-  const [slug, setSlug] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (parsed.slug) return parsed.slug;
-      }
-    } catch {
-      // Fallback
-    }
-    return 'gioi-thieu-san-pham-moi';
-  });
-
-  const [description, setDescription] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (parsed.description) return parsed.description;
-      }
-    } catch {
-      // Fallback
-    }
-    return 'Khám phá các tính năng đột phá của nền tảng CMSBuilder thông minh. Tối ưu hóa quy trình quản trị nội dung, nâng cao hiệu suất và trải nghiệm người dùng.';
-  });
-
-  const [lastSaved, setLastSaved] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: PageDraft = JSON.parse(saved);
-        if (parsed.updatedAt) return parsed.updatedAt;
-      }
-    } catch {
-      // Fallback
-    }
-    return null;
-  });
+  const [title, setTitle] = useState<string>(() => initialDraft?.title || DEFAULT_TITLE);
+  const [slug, setSlug] = useState<string>(() => initialDraft?.slug || pageSlug?.replace(/^\/+/, '') || DEFAULT_SLUG);
+  const [description, setDescription] = useState<string>(() => initialDraft?.description || DEFAULT_DESCRIPTION);
+  const [lastSaved, setLastSaved] = useState<string | null>(() => initialDraft?.updatedAt || null);
+  const [draftStatus, setDraftStatus] = useState<'draft' | 'published'>(() => initialDraft?.status || 'draft');
+  const hydratedKeyRef = useRef<string>(storageKey);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -226,6 +194,72 @@ export default function PageBuilderPage() {
     notify('Đã thêm khối nội dung mới');
   };
 
+  // Đồng bộ nạp dữ liệu trang khi ?id=... hoặc ?slug=... thay đổi
+  useEffect(() => {
+    let active = true;
+    const saved = readDraft(storageKey);
+
+    if (hydratedKeyRef.current !== storageKey) {
+      hydratedKeyRef.current = storageKey;
+      if (saved) {
+        setBlocks(Array.isArray(saved.blocks) && saved.blocks.length > 0 ? saved.blocks : initialBlocks);
+        setSelectedId(saved.blocks?.[0]?.id ?? initialBlocks[0]?.id ?? '');
+        setTitle(saved.title || DEFAULT_TITLE);
+        setSlug(saved.slug || pageSlug?.replace(/^\/+/, '') || DEFAULT_SLUG);
+        setDescription(saved.description || DEFAULT_DESCRIPTION);
+        setLastSaved(saved.updatedAt || null);
+        setDraftStatus(saved.status || 'draft');
+        return () => {
+          active = false;
+        };
+      }
+    }
+
+    if (!saved && (pageId || pageSlug)) {
+      pageApi
+        .getPages({ limit: 100 })
+        .then((res) => {
+          if (!active) return;
+          const normalizedSlug = pageSlug?.replace(/^\/+/, '');
+          const matched = res.data.items.find(
+            (p) =>
+              (pageId && p.id === pageId) ||
+              (normalizedSlug && p.slug.replace(/^\/+/, '') === normalizedSlug)
+          );
+          if (matched) {
+            setTitle(matched.title);
+            setSlug(matched.slug.replace(/^\/+/, ''));
+            setDescription(matched.description || '');
+            setDraftStatus(matched.status);
+          }
+        })
+        .catch(() => {
+          // Keep current state if API is unreachable
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [storageKey, pageId, pageSlug]);
+
+  // Tự động lưu bản nháp (bao gồm thứ tự block) vào localStorage khi có thay đổi
+  useEffect(() => {
+    try {
+      const draftData: PageDraft = {
+        blocks,
+        title,
+        slug,
+        description,
+        updatedAt: lastSaved || '',
+        status: draftStatus,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(draftData));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [blocks, title, slug, description, lastSaved, draftStatus, storageKey]);
+
   const save = useCallback((): void => {
     const timestamp = new Date().toLocaleTimeString('vi-VN', {
       hour: '2-digit',
@@ -241,17 +275,46 @@ export default function PageBuilderPage() {
       slug,
       description,
       updatedAt: timestamp,
-      status: 'draft',
+      status: draftStatus,
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(draftData));
+    localStorage.setItem(storageKey, JSON.stringify(draftData));
     setLastSaved(timestamp);
     notify('Đã lưu bản nháp trên thiết bị này');
-  }, [blocks, title, slug, description]);
+  }, [blocks, title, slug, description, draftStatus, storageKey]);
 
-  const publish = (): void => {
-    save();
-    notify('Bản nháp đã sẵn sàng — cần kết nối API để xuất bản');
+  const publish = async (): Promise<void> => {
+    const timestamp = new Date().toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+    });
+    const draftData: PageDraft = {
+      blocks,
+      title,
+      slug,
+      description,
+      updatedAt: timestamp,
+      status: 'published',
+    };
+    localStorage.setItem(storageKey, JSON.stringify(draftData));
+    setLastSaved(timestamp);
+    setDraftStatus('published');
+
+    if (pageId) {
+      try {
+        await pageApi.updatePage(pageId, { status: 'published' });
+        notify('Đã xuất bản trang thành công');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Không thể đồng bộ xuất bản lên máy chủ.';
+        notify(`Đã lưu bản nháp cục bộ (${msg})`);
+      }
+      return;
+    }
+
+    notify('Đã lưu và đánh dấu sẵn sàng xuất bản');
   };
 
   // Đóng modal khi bấm Escape
@@ -519,19 +582,46 @@ export default function PageBuilderPage() {
             <div className="preview-footer">
               <span>
                 <ExternalLink size={14} />
-                Bản xem trước · Chưa công khai
+                {draftStatus === 'published' ? 'Đã xuất bản' : 'Bản xem trước · Chưa công khai'}
               </span>
 
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => {
-                  setPreview(false);
-                  publish();
-                }}
-              >
-                Xuất bản trang
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {slug && (
+                  <a
+                    href={`/p/${slug.replace(/^\/+/, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      padding: '0.5rem 0.875rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--border-strong, #CBD5E1)',
+                      color: 'var(--text-primary, #0F172A)',
+                      textDecoration: 'none',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      minHeight: '2.75rem',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <ExternalLink size={14} />
+                    Mở trang công khai
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() => {
+                    setPreview(false);
+                    publish();
+                  }}
+                >
+                  Xuất bản trang
+                </button>
+              </div>
             </div>
           </div>
         </div>
