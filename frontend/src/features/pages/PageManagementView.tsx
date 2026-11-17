@@ -2,6 +2,7 @@
 // Wires usePages + list components (Worker 1) with PageFormModal / DeleteConfirmModal (Worker 2).
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiCheckCircle,
   FiAlertCircle,
@@ -60,6 +61,7 @@ export interface PageManagementViewProps {
 }
 
 export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPreview }) => {
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const useCardView = useMediaQuery(CARD_VIEW_QUERY);
   const list = usePages();
@@ -163,12 +165,18 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
     }
   };
 
+  const handleBuildContent = (page: Page) => {
+    const cleanSlug = page.slug.replace(/^\/+/, '');
+    navigate(`/page-builder?id=${encodeURIComponent(page.id)}&slug=${encodeURIComponent(cleanSlug)}`);
+  };
+
   const rowActions = {
     onEdit: handleOpenEdit,
     onDelete: handleOpenDelete,
     onPreview: handlePreview,
     onToggleStatus: handleToggleStatus,
     onCopySlug: handleCopySlug,
+    onBuildContent: handleBuildContent,
   };
 
   const hasFilter = Boolean(list.search.trim()) || list.status !== 'all';

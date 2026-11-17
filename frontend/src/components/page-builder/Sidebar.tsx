@@ -18,9 +18,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Blocks, label: 'Trình soạn thảo', path: '/page-builder' },
-  { icon: FileText, label: 'Quản lý trang', path: '/dashboard' },
+  { icon: FileText, label: 'Quản lý trang', path: '/pages' },
   { icon: FolderOpen, label: 'Thư viện Media', path: '/media' },
-  { icon: PanelsTopLeft, label: 'Trang công khai', path: '/' },
+  { icon: PanelsTopLeft, label: 'Trang công khai', path: '/p' },
   { icon: Settings, label: 'Cài đặt hệ thống', path: '/settings' },
 ];
 

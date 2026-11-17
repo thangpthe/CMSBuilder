@@ -44,8 +44,23 @@ function AppRoutes() {
       {/* Login */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Page Builder - tạm thời cho phép truy cập trực tiếp để kiểm tra UI */}
-      <Route path="/page-builder" element={<PageBuilderPage />} />
+      {/* Page Builder */}
+      <Route
+        path="/page-builder"
+        element={
+          <ProtectedRoute>
+            <PageBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/page-builder/*"
+        element={
+          <ProtectedRoute>
+            <PageBuilderPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Dashboard */}
       <Route
@@ -58,10 +73,38 @@ function AppRoutes() {
       />
 
       {/* Page Management */}
-      <Route path="/pages" element={<PageListPage />} />
-      <Route path="/pages/*" element={<PageListPage />} />
-      <Route path="/admin/pages" element={<PageListPage />} />
-      <Route path="/admin/pages/*" element={<PageListPage />} />
+      <Route
+        path="/pages"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pages/*"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pages"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pages/*"
+        element={
+          <ProtectedRoute>
+            <PageListPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Public Page */}
       <Route path="/p" element={<PublicPage />} />
