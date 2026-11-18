@@ -16,6 +16,7 @@ from app.models.user import User
 
 from app.schemas.page import (
     PageCreateRequest,
+    PageUpdateRequest,
     PageResponse,
     PageListResponse,
     PageDetailResponse,
@@ -26,9 +27,12 @@ from app.services.page_service import (
     create_page,
     get_user_pages,
     get_user_page_by_id,
+    update_page,
+    delete_page,
     publish_page,
     unpublish_page,
-    PageNotFoundError
+    PageNotFoundError,
+    SlugConflictError
 )
 
 
@@ -203,6 +207,75 @@ def publish_page_api(
             detail=str(error)
         )
 
+
+# API cap nhat thong tin Page
+@router.put(
+    "/{page_id}",
+    response_model=PageResponse
+)
+def update_page_api(
+    page_id: int,
+    page_data: PageUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    fields_set = page_data.model_fields_set
+
+    try:
+        return update_page(
+            db=db,
+            page_id=page_id,
+            owner_id=current_user.id,
+            title=page_data.title,
+            description=page_data.description,
+            slug=page_data.slug,
+            status=page_data.status,
+            description_provided="description" in fields_set,
+            slug_provided="slug" in fields_set
+        )
+
+    except PageNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+    except SlugConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error)
+        )
+
+
+# API xoa Page
+@router.delete(
+    "/{page_id}",
+    status_code=status.HTTP_200_OK
+)
+def delete_page_api(
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    try:
+        delete_page(
+            db=db,
+            page_id=page_id,
+            owner_id=current_user.id
+        )
+        return {
+            "success": True,
+            "message": "Đã xóa trang thành công"
+        }
+
+    except PageNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
 # API Unpublish Page
 @router.post(
     "/{page_id}/unpublish",
@@ -230,6 +303,7 @@ def unpublish_page_api(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error)
         )
+
 
 
 
