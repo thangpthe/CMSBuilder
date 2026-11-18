@@ -9,6 +9,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 SLUG_REGEX = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
+def _normalize_and_validate_slug(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip().lower().lstrip("/")
+    if not cleaned:
+        return None
+    if not SLUG_REGEX.match(cleaned):
+        raise ValueError(
+            "Slug chi duoc chua chu thuong, so va dau gach ngang."
+        )
+    return cleaned
+
+
 # Du lieu Frontend gui de tao Page
 class PageCreateRequest(BaseModel):
 
@@ -19,6 +32,8 @@ class PageCreateRequest(BaseModel):
         max_length=2000
     )
 
+    slug: str | None = Field(default=None, max_length=255)
+
     @field_validator("title")
     @classmethod
     def validate_title(cls, value):
@@ -28,6 +43,11 @@ class PageCreateRequest(BaseModel):
             raise ValueError("Tieu de trang khong duoc de trong.")
 
         return value
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, value: str | None) -> str | None:
+        return _normalize_and_validate_slug(value)
 
 
 # Du lieu Frontend gui de cap nhat Page
@@ -51,16 +71,7 @@ class PageUpdateRequest(BaseModel):
     @field_validator("slug")
     @classmethod
     def validate_slug(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        cleaned = value.strip().lower().lstrip("/")
-        if not cleaned:
-            return None
-        if not SLUG_REGEX.match(cleaned):
-            raise ValueError(
-                "Slug chi duoc chua chu thuong, so va dau gach ngang."
-            )
-        return cleaned
+        return _normalize_and_validate_slug(value)
 
 
 # Response thong tin Page

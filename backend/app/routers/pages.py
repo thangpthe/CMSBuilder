@@ -62,12 +62,19 @@ def create_page_api(
     current_user: User = Depends(get_current_user)
 ):
 
-    return create_page(
-        db=db,
-        owner_id=current_user.id,
-        title=page_data.title,
-        description=page_data.description
-    )
+    try:
+        return create_page(
+            db=db,
+            owner_id=current_user.id,
+            title=page_data.title,
+            description=page_data.description,
+            slug=page_data.slug
+        )
+    except SlugConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error)
+        )
 
 
 # API lay danh sach Page

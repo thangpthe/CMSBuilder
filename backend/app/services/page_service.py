@@ -13,13 +13,24 @@ def create_page(
     db: Session,
     owner_id: int,
     title: str,
-    description: str | None = None
+    description: str | None = None,
+    slug: str | None = None
 ) -> Page:
+
+    if slug:
+        existing_page_id = db.scalar(
+            select(Page.id).where(Page.slug == slug)
+        )
+        if existing_page_id is not None:
+            raise SlugConflictError(
+                "Slug da ton tai. Vui long chon slug khac."
+            )
 
     new_page = Page(
         owner_id=owner_id,
         title=title.strip(),
         description=description.strip() if description else None,
+        slug=slug if slug else None,
         status="draft"
     )
 

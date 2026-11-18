@@ -211,6 +211,10 @@ def update_block(
             media = _validate_owned_media(db, media_id, owner_id)
             block.media_id = media.id
         else:
+            if block.type == "image":
+                raise InvalidBlockDataError(
+                    "Image Block bat buoc phai co media_id hop le, khong duoc cap nhat media_id = null."
+                )
             block.media_id = None
 
     if order_index_provided and order_index is not None:
