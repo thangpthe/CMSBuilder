@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import {
   AlignLeft,
   Image as ImageIcon,
@@ -16,6 +16,7 @@ import {
   Pilcrow,
   Check,
   AlertTriangle,
+  Upload,
 } from 'lucide-react';
 import type {
   Block,
@@ -26,6 +27,7 @@ import type {
   TextHeadingLevel,
 } from '../../types/pageBuilder';
 import { isValidVideoUrl, extractYouTubeId } from '../../utils/slugify';
+import mediaService from '../../services/mediaService';
 
 // ---------------------- BLOCK TOOLBAR ----------------------
 interface BlockToolbarProps {
@@ -217,6 +219,46 @@ function ImageBlockEditor({
   block: ImageBlock;
   onUpdate: (id: string, changes: Partial<ImageBlock>) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadStatus(null);
+
+    try {
+      const res = await mediaService.uploadImage(file);
+      onUpdate(block.id, {
+        src: res.url,
+        mediaId: res.id,
+        alt: block.alt || res.original_filename,
+      });
+      setUploadStatus({
+        type: 'success',
+        message: `Đã tải lên: ${res.original_filename}`,
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Tải ảnh lên thất bại. Vui lòng thử lại.';
+      setUploadStatus({
+        type: 'error',
+        message: msg,
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="media-block-content">
       <div className="media-preview">
@@ -238,11 +280,64 @@ function ImageBlockEditor({
               fontSize: '12px',
             }}
           >
-            Chưa có hình ảnh. Vui lòng nhập URL bên dưới.
+            Chưa có hình ảnh. Vui lòng tải ảnh lên hoặc nhập URL bên dưới.
           </div>
         )}
         <div className="media-overlay">Ảnh xem trước</div>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={handleFileChange}
+          disabled={uploading}
+          aria-label="Tải ảnh lên từ máy tính"
+          style={{ display: 'none' }}
+        />
+        <button
+          type="button"
+          className="tool-tab"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: uploading ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <Upload size={14} />
+          {uploading ? 'Đang tải ảnh lên...' : 'Tải ảnh lên (PNG/JPG/WebP/GIF)'}
+        </button>
+
+        {block.mediaId ? (
+          <span
+            className="valid-tag"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <Check size={12} />
+            Media ID #{block.mediaId}
+          </span>
+        ) : null}
+      </div>
+
+      {uploadStatus && (
+        <div
+          role="status"
+          style={{
+            fontSize: '12px',
+            marginBottom: 10,
+            padding: '6px 10px',
+            borderRadius: 6,
+            background: uploadStatus.type === 'success' ? '#ecfdf5' : '#fef2f2',
+            color: uploadStatus.type === 'success' ? '#047857' : '#b91c1c',
+          }}
+        >
+          {uploadStatus.message}
+        </div>
+      )}
 
       <label className="field-label">Đường dẫn hình ảnh (Image URL) <b>*</b></label>
       <input
@@ -250,7 +345,7 @@ function ImageBlockEditor({
         placeholder="https://example.com/image.jpg"
         value={block.src}
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-          onUpdate(block.id, { src: e.target.value })
+          onUpdate(block.id, { src: e.target.value, mediaId: null })
         }
       />
 

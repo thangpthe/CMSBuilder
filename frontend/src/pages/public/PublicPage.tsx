@@ -498,9 +498,45 @@ export default function PublicPage() {
             <div className="pub-prose" id="explore">
               {realBlocks.map((block) => {
                 if (block.type === 'text') {
+                  const raw = block.content || '';
+                  let parsed: { content?: string; body?: string; level?: string } | null = null;
+                  if (raw.trim().startsWith('{')) {
+                    try {
+                      const obj = JSON.parse(raw);
+                      if (obj && typeof obj === 'object' && ('content' in obj || 'body' in obj || 'level' in obj)) {
+                        parsed = obj;
+                      }
+                    } catch {
+                      parsed = null;
+                    }
+                  }
+
+                  if (parsed) {
+                    const headingText = typeof parsed.content === 'string' ? parsed.content : '';
+                    const bodyText = typeof parsed.body === 'string' ? parsed.body : '';
+                    const level = parsed.level;
+                    return (
+                      <div key={block.id}>
+                        {headingText && (
+                          <>
+                            {level === 'h1' && <h1>{headingText}</h1>}
+                            {level === 'h2' && <h2>{headingText}</h2>}
+                            {level === 'h3' && <h3>{headingText}</h3>}
+                            {(level === 'p' || !['h1', 'h2', 'h3'].includes(String(level))) && (
+                              <p style={{ fontWeight: 600 }}>{headingText}</p>
+                            )}
+                          </>
+                        )}
+                        {bodyText && (
+                          <p style={{ whiteSpace: 'pre-line' }}>{bodyText}</p>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <p key={block.id} style={{ whiteSpace: 'pre-line' }}>
-                      {block.content}
+                      {raw}
                     </p>
                   );
                 }
