@@ -260,44 +260,25 @@ export const pageRealApi: IPageApi = {
       };
     }
 
-    try {
-      const updated = await request<BackendPage>(`/api/pages/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-      return {
-        success: true,
-        data: mapBackendPage(updated),
-        message: 'Cập nhật trang thành công.',
-      };
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
-        throw new ApiError(
-          'Backend hiện chưa hỗ trợ cập nhật thông tin trang (PUT /api/pages/:id).',
-          err.status,
-        );
-      }
-      throw err;
-    }
+    const updated = await request<BackendPage>(`/api/pages/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return {
+      success: true,
+      data: mapBackendPage(updated),
+      message: 'Cập nhật trang thành công.',
+    };
   },
 
   async deletePage(id: string): Promise<DeletePageResponse> {
-    try {
-      await request<unknown>(`/api/pages/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
-      return {
-        success: true,
-        message: 'Đã xóa trang thành công.',
-      };
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
-        throw new ApiError(
-          'Backend hiện chưa hỗ trợ xóa trang (DELETE /api/pages/:id).',
-          err.status,
-        );
-      }
-      throw err;
-    }
+    const res = await request<Partial<DeletePageResponse>>(
+      `/api/pages/${encodeURIComponent(id)}`,
+      { method: 'DELETE' },
+    );
+    return {
+      success: res?.success ?? true,
+      message: res?.message || 'Đã xóa trang thành công.',
+    };
   },
 };
