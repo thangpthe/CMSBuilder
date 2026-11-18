@@ -1,24 +1,22 @@
-
-import axios from "axios";
-
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-
-const authApi = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import apiClient from './api';
 
 export interface LoginCredentials {
   identifier: string;
   password: string;
 }
 
-export const login = async ({ identifier, password }: LoginCredentials) => {
-  const response = await authApi.post("/api/auth/login", {
+export interface LoginResponse {
+  access_token: string;
+  token_type?: string;
+  user?: {
+    id: string | number;
+    email: string;
+    username?: string;
+  };
+}
+
+export const login = async ({ identifier, password }: LoginCredentials): Promise<LoginResponse> => {
+  const response = await apiClient.post<LoginResponse>('/api/auth/login', {
     identifier,
     password,
   });
