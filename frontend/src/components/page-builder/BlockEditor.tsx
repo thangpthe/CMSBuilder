@@ -109,7 +109,7 @@ function BlockToolbar({
             onDelete(block.id);
           }}
           aria-label="Xóa khối"
-          style={{ color: '#e26c79' }}
+          style={{ color: 'var(--status-danger-text)' }}
         >
           <Trash2 size={14} />
         </button>
@@ -171,7 +171,7 @@ function TextBlockEditor({
           <Pilcrow size={14} />
         </button>
         <span className="format-divider" />
-        <span style={{ fontSize: '10px', color: '#8d94a4', alignSelf: 'center' }}>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)', alignSelf: 'center' }}>
           Định dạng: {block.level.toUpperCase()}
         </span>
       </div>
@@ -212,6 +212,10 @@ function TextBlockEditor({
   );
 }
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif)$/i;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
 function ImageBlockEditor({
   block,
   onUpdate,
@@ -229,6 +233,31 @@ function ImageBlockEditor({
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const isValidType =
+      ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) ||
+      ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+    if (!isValidType) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Định dạng ảnh không hợp lệ. Chỉ chấp nhận JPG, PNG, WebP hoặc GIF.',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Dung lượng ảnh vượt quá giới hạn 5MB. Vui lòng chọn ảnh nhỏ hơn.',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     setUploading(true);
     setUploadStatus(null);
@@ -276,7 +305,7 @@ function ImageBlockEditor({
               height: '100%',
               display: 'grid',
               placeItems: 'center',
-              color: '#9ba1b0',
+              color: 'var(--text-muted)',
               fontSize: '12px',
             }}
           >
@@ -325,17 +354,25 @@ function ImageBlockEditor({
 
       {uploadStatus && (
         <div
-          role="status"
+          role={uploadStatus.type === 'error' ? 'alert' : 'status'}
+          data-testid={uploadStatus.type === 'error' ? 'image-upload-error' : undefined}
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
             fontSize: '12px',
             marginBottom: 10,
-            padding: '6px 10px',
+            padding: '8px 10px',
             borderRadius: 6,
             background: uploadStatus.type === 'success' ? '#ecfdf5' : '#fef2f2',
             color: uploadStatus.type === 'success' ? '#047857' : '#b91c1c',
+            border: uploadStatus.type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca',
           }}
         >
-          {uploadStatus.message}
+          {uploadStatus.type === 'error' && (
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          )}
+          <span>{uploadStatus.message}</span>
         </div>
       )}
 
@@ -413,8 +450,8 @@ function VideoBlockEditor({
           <span
             className="valid-tag"
             style={{
-              background: '#fee8e8',
-              color: '#d94343',
+              background: 'var(--status-danger-bg)',
+              color: 'var(--status-danger-text)',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -426,12 +463,35 @@ function VideoBlockEditor({
         ) : (
           <span
             className="valid-tag"
-            style={{ background: '#f0f1f5', color: '#8d94a4' }}
+            style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
           >
             Chưa có URL
           </span>
         )}
       </div>
+
+      {(!block.url.trim() || !isUrlValid) && (
+        <div
+          role="alert"
+          data-testid="video-url-error"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '12px',
+            marginTop: 6,
+            marginBottom: 10,
+            padding: '8px 10px',
+            borderRadius: 6,
+            background: '#fef2f2',
+            color: '#b91c1c',
+            border: '1px solid #fecaca',
+          }}
+        >
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          <span>Vui lòng nhập URL video hợp lệ (YouTube, Vimeo hoặc .mp4/.webm/.ogg).</span>
+        </div>
+      )}
 
       <div className="video-preview">
         {ytId ? (
@@ -539,7 +599,7 @@ export default function BlockEditor({
             style={{
               padding: '40px 20px',
               textAlign: 'center',
-              color: '#8b91a1',
+              color: 'var(--text-muted)',
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
@@ -553,6 +613,7 @@ export default function BlockEditor({
           blocks.map((block, index) => (
             <section
               key={block.id}
+              data-block-id={block.id}
               className={`content-block ${
                 selectedId === block.id ? 'is-selected' : ''
               }`}

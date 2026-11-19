@@ -7,6 +7,7 @@ import {
   Tablet,
   X,
   ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 
 import Sidebar from '../../components/page-builder/Sidebar';
@@ -24,7 +25,7 @@ import type {
   PageDraft,
   TextHeadingLevel,
 } from '../../types/pageBuilder';
-import { extractYouTubeId } from '../../utils/slugify';
+import { extractYouTubeId, isValidVideoUrl } from '../../utils/slugify';
 
 import '../../components/page-builder/styles.css';
 
@@ -182,6 +183,7 @@ export default function PageBuilderPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [preview, setPreview] = useState(false);
   const [previewSize, setPreviewSize] = useState<PreviewSize>('desktop');
 
@@ -191,11 +193,12 @@ export default function PageBuilderPage() {
     [blocks, selectedId]
   );
 
-  const notify = (message: string): void => {
+  const notify = (message: string, type: 'success' | 'error' = 'success'): void => {
+    setToastType(type);
     setToast(message);
     const win = window as Window & { __cmsToast?: number };
     win.clearTimeout(win.__cmsToast);
-    win.__cmsToast = win.setTimeout(() => setToast(''), 2600);
+    win.__cmsToast = win.setTimeout(() => setToast(''), 3200);
   };
 
   const updateBlock = (id: string, changes: Partial<Block>): void => {
@@ -527,7 +530,25 @@ export default function PageBuilderPage() {
     return { pageId: targetPageId, slug: savedSlug };
   }, [blocks, currentPageId, description, setSearchParams, slug, title]);
 
+  const validateBlocksBeforeSubmit = useCallback((): boolean => {
+    const invalidVideo = blocks.find(
+      (b) => b.type === 'video' && (b.url.trim() === '' || !isValidVideoUrl(b.url))
+    );
+    if (invalidVideo) {
+      setSelectedId(invalidVideo.id);
+      const el = document.querySelector(`[data-block-id="${invalidVideo.id}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      notify('Vui lòng nhập URL video hợp lệ trước khi lưu hoặc xuất bản.', 'error');
+      return false;
+    }
+    return true;
+  }, [blocks]);
+
   const save = useCallback(async (): Promise<void> => {
+    if (!validateBlocksBeforeSubmit()) return;
+
     const timestamp = new Date().toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
@@ -551,11 +572,13 @@ export default function PageBuilderPage() {
       notify('Đã lưu trang và khối nội dung lên máy chủ');
     } catch (err: unknown) {
       const msg = extractApiErrorMessage(err, 'Không thể lưu lên máy chủ.');
-      notify(`Lỗi khi lưu: ${msg}`);
+      notify(`Lỗi khi lưu: ${msg}`, 'error');
     }
-  }, [blocks, description, draftStatus, slug, storageKey, syncToBackend, title]);
+  }, [blocks, description, draftStatus, slug, storageKey, syncToBackend, title, validateBlocksBeforeSubmit]);
 
   const publish = async (): Promise<void> => {
+    if (!validateBlocksBeforeSubmit()) return;
+
     const timestamp = new Date().toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
@@ -589,7 +612,7 @@ export default function PageBuilderPage() {
       notify('Đã xuất bản trang thành công');
     } catch (err: unknown) {
       const msg = extractApiErrorMessage(err, 'Không thể xuất bản trang lên máy chủ.');
-      notify(`Lỗi khi xuất bản: ${msg}`);
+      notify(`Lỗi khi xuất bản: ${msg}`, 'error');
     }
   };
 
@@ -616,6 +639,7 @@ export default function PageBuilderPage() {
       <div className="main-area">
         <Topbar
           title={title}
+          status={draftStatus}
           onMenu={() => setSidebarOpen(true)}
           onPreview={() => setPreview(true)}
           onSave={save}
@@ -659,7 +683,7 @@ export default function PageBuilderPage() {
                 <span
                   style={{
                     marginRight: '12px',
-                    color: '#6259d9',
+                    color: 'var(--brand-primary)',
                     fontWeight: 600,
                   }}
                 >
@@ -699,14 +723,29 @@ export default function PageBuilderPage() {
               visible={settingsOpen}
               onClose={() => setSettingsOpen(false)}
               lastSaved={lastSaved}
+              status={draftStatus}
             />
           </div>
         </div>
       </div>
 
       {toast && (
-        <div className="toast">
-          <Check size={16} />
+        <div
+          className="toast"
+          role={toastType === 'error' ? 'alert' : 'status'}
+          data-testid={toastType === 'error' ? 'page-builder-error-toast' : undefined}
+          style={
+            toastType === 'error'
+              ? {
+                  background: 'var(--status-danger-bg)',
+                  color: 'var(--status-danger-text)',
+                  border: '1px solid var(--status-danger-text)',
+                  fontWeight: 600,
+                }
+              : undefined
+          }
+        >
+          {toastType === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
           {toast}
         </div>
       )}
@@ -781,7 +820,7 @@ export default function PageBuilderPage() {
                 </div>
 
                 {blocks.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ba1b0' }}>
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                     Chưa có khối nội dung nào trong bản xem trước.
                   </div>
                 ) : (
@@ -839,7 +878,7 @@ export default function PageBuilderPage() {
                               <div className="play-button">▶</div>
                               <p style={{ marginTop: 8 }}>{block.title || 'Video'}</p>
                               {block.url && (
-                                <small style={{ color: '#8d94a4' }}>
+                                <small style={{ color: 'var(--text-muted)' }}>
                                   {block.url}
                                 </small>
                               )}
