@@ -212,8 +212,8 @@ function TextBlockEditor({
   );
 }
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif)$/i;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png)$/i;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function ImageBlockEditor({
@@ -234,13 +234,14 @@ function ImageBlockEditor({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isValidType =
-      ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) ||
-      ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+    const hasValidExtension = ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+    const hasValidMime =
+      !file.type || ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase());
+    const isValidType = hasValidExtension && hasValidMime;
     if (!isValidType) {
       setUploadStatus({
         type: 'error',
-        message: 'Định dạng ảnh không hợp lệ. Chỉ chấp nhận JPG, PNG, WebP hoặc GIF.',
+        message: 'Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận JPG, JPEG hoặc PNG.',
       });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -274,8 +275,14 @@ function ImageBlockEditor({
         message: `Đã tải lên: ${res.original_filename}`,
       });
     } catch (err: unknown) {
+      const responseData = (
+        err as { response?: { data?: { detail?: string; message?: string } } }
+      )?.response?.data;
       const msg =
-        err instanceof Error ? err.message : 'Tải ảnh lên thất bại. Vui lòng thử lại.';
+        responseData?.detail ||
+        responseData?.message ||
+        (err instanceof Error ? err.message : null) ||
+        'Tải ảnh lên thất bại. Vui lòng thử lại.';
       setUploadStatus({
         type: 'error',
         message: msg,
@@ -319,7 +326,7 @@ function ImageBlockEditor({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
+          accept="image/jpeg,image/png,.jpg,.jpeg,.png"
           onChange={handleFileChange}
           disabled={uploading}
           aria-label="Tải ảnh lên từ máy tính"
@@ -338,7 +345,7 @@ function ImageBlockEditor({
           }}
         >
           <Upload size={14} />
-          {uploading ? 'Đang tải ảnh lên...' : 'Tải ảnh lên (PNG/JPG/WebP/GIF)'}
+          {uploading ? 'Đang tải ảnh lên...' : 'Tải ảnh lên (JPG/JPEG/PNG)'}
         </button>
 
         {block.mediaId ? (
