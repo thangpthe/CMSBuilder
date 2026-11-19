@@ -12,6 +12,7 @@ export interface SettingsPanelProps {
   visible: boolean;
   onClose: () => void;
   lastSaved?: string | null;
+  status?: 'draft' | 'published';
 }
 
 export default function SettingsPanel({
@@ -24,7 +25,9 @@ export default function SettingsPanel({
   visible,
   onClose,
   lastSaved,
+  status = 'draft',
 }: SettingsPanelProps) {
+  const isPublished = status === 'published';
   const handleAutoSlug = () => {
     const generated = generateSlug(title);
     setSlug(generated || 'trang-moi');
@@ -110,7 +113,7 @@ export default function SettingsPanel({
         <div
           className="char-count"
           style={{
-            color: description.length > 160 ? '#e26c79' : undefined,
+            color: description.length > 160 ? 'var(--status-danger-text)' : undefined,
             fontWeight: description.length > 160 ? 600 : 400,
           }}
         >
@@ -133,11 +136,30 @@ export default function SettingsPanel({
           <CalendarClock size={16} /> Lịch sử bài viết <i />
         </div>
         <div className="history-card">
-          <CheckCircle2 size={17} />
+          <CheckCircle2
+            size={17}
+            style={{
+              color: isPublished
+                ? 'var(--status-published-text)'
+                : 'var(--status-draft-text)',
+            }}
+          />
           <div>
-            <strong>Đã lưu vào bộ nhớ nháp</strong>
+            <strong
+              style={{
+                color: isPublished
+                  ? 'var(--status-published-text)'
+                  : 'var(--status-draft-text)',
+              }}
+            >
+              {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
+            </strong>
             <span>
-              {lastSaved ? `Cập nhật gần nhất: ${lastSaved}` : 'Đã lưu trên thiết bị này'}
+              {lastSaved
+                ? `Cập nhật gần nhất: ${lastSaved}`
+                : isPublished
+                  ? 'Đã xuất bản lên hệ thống'
+                  : 'Đã lưu trên thiết bị này'}
             </span>
           </div>
         </div>
@@ -146,8 +168,21 @@ export default function SettingsPanel({
       <div className="visibility-row">
         <Globe size={16} />
         <span>Trạng thái hiển thị</span>
-        <strong>
-          <i /> Bản nháp
+        <strong
+          style={{
+            color: isPublished
+              ? 'var(--status-published-text)'
+              : 'var(--status-draft-text)',
+          }}
+        >
+          <i
+            style={{
+              background: isPublished
+                ? 'var(--status-published-text)'
+                : 'var(--status-draft-text)',
+            }}
+          />{' '}
+          {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
         </strong>
       </div>
     </aside>

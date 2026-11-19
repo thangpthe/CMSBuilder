@@ -14,15 +14,33 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   path: string;
+  matchPaths?: string[];
 }
 
 const navItems: NavItem[] = [
   { icon: Blocks, label: 'Trình soạn thảo', path: '/page-builder' },
-  { icon: FileText, label: 'Quản lý trang', path: '/pages' },
+  {
+    icon: FileText,
+    label: 'Quản lý trang',
+    path: '/pages',
+    matchPaths: ['/pages', '/admin/pages'],
+  },
   { icon: FolderOpen, label: 'Thư viện Media', path: '/media' },
-  { icon: PanelsTopLeft, label: 'Trang công khai', path: '/p' },
+  {
+    icon: PanelsTopLeft,
+    label: 'Trang công khai',
+    path: '/p',
+    matchPaths: ['/p', '/public'],
+  },
   { icon: Settings, label: 'Cài đặt hệ thống', path: '/settings' },
 ];
+
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const prefixes = item.matchPaths ?? [item.path];
+  return prefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
 
 export interface SidebarProps {
   open: boolean;
@@ -61,8 +79,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="nav-caption">QUẢN TRỊ HỆ THỐNG</div>
         <nav>
-          {navItems.map(({ icon: Icon, label, path }) => {
-            const isActive = location.pathname === path;
+          {navItems.map((item) => {
+            const { icon: Icon, label, path } = item;
+            const isActive = isNavItemActive(location.pathname, item);
             return (
               <button
                 key={label}

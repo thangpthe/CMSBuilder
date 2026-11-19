@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 export interface TopbarProps {
   title: string;
+  status?: 'draft' | 'published';
   onMenu: () => void;
   onPreview: () => void;
   onSave: () => void;
@@ -22,12 +23,14 @@ export interface TopbarProps {
 
 export default function Topbar({
   title,
+  status = 'draft',
   onMenu,
   onPreview,
   onSave,
   onPublish,
   onSettings,
 }: TopbarProps) {
+  const isPublished = status === 'published';
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -56,6 +59,11 @@ export default function Topbar({
               border: 'none',
               background: 'transparent',
               padding: 0,
+              minHeight: '2.75rem',
+              minWidth: '2.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               font: 'inherit',
               fontWeight: 600,
               color: 'inherit',
@@ -111,6 +119,11 @@ export default function Topbar({
                 background: 'transparent',
                 cursor: 'pointer',
                 padding: 0,
+                minHeight: '2.75rem',
+                minWidth: '2.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               ‹
@@ -118,7 +131,11 @@ export default function Topbar({
             <div>
               <h1>{title || 'Chưa đặt tiêu đề'}</h1>
               <p>
-                Trang / {title || 'Bản nháp mới'} · <span className="status-dot" /> Bản nháp
+                Trang / {title || 'Bản nháp mới'} ·{' '}
+                <span
+                  className={`status-dot ${isPublished ? 'is-published' : 'is-draft'}`}
+                />{' '}
+                {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
               </p>
             </div>
           </div>

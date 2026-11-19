@@ -1,3 +1,4 @@
+import AdminLayout from '../../components/layout/AdminLayout';
 import { PageManagementView } from '../../features/pages/PageManagementView';
 
 /**
@@ -5,5 +6,9 @@ import { PageManagementView } from '../../features/pages/PageManagementView';
  * Phụ trách bởi: Đỗ Huy Đạt
  */
 export default function PageListPage() {
-  return <PageManagementView />;
+  return (
+    <AdminLayout breadcrumbLabel="Quản lý trang">
+      <PageManagementView />
+    </AdminLayout>
+  );
 }
