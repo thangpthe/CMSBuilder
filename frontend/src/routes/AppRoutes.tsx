@@ -9,17 +9,6 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
-function DashboardPlaceholder() {
-  return (
-    <div style={{ padding: 32 }}>
-      <h1>CMSBuilder Dashboard</h1>
-      <p>
-        Đăng nhập thành công. Khu vực quản trị sẽ được phát triển ở bước tiếp theo.
-      </p>
-    </div>
-  );
-}
-
 function ProtectedRoute({ children }: ProtectedRouteProps) {
   const token = localStorage.getItem("access_token");
 
@@ -67,7 +56,7 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardPlaceholder />
+            <Navigate to="/pages" replace />
           </ProtectedRoute>
         }
       />
