@@ -49,31 +49,6 @@ export default function Topbar({
           <Menu size={20} />
         </button>
 
-        <div className="breadcrumb">
-          <span>CMS Workspace</span>
-          <ChevronRight size={14} />
-          <button
-            type="button"
-            onClick={handleBack}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-              minHeight: '2.75rem',
-              minWidth: '2.75rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              font: 'inherit',
-              fontWeight: 600,
-              color: 'inherit',
-              cursor: 'pointer',
-            }}
-          >
-            Quản lý trang
-          </button>
-        </div>
-
         <div className="global-search">
           <Search size={16} />
           <input
@@ -83,10 +58,7 @@ export default function Topbar({
           />
         </div>
 
-        <button type="button" className="help-link">
-          <BookOpen size={16} />
-          <span>Trung tâm trợ giúp</span>
-        </button>
+        
 
         <button
           type="button"
@@ -98,10 +70,10 @@ export default function Topbar({
         </button>
 
         <div className="profile">
-          <div className="avatar">AD</div>
+          <div className="avatar"></div>
           <div>
-            <strong>Quản trị viên</strong>
-            <span>Admin · Hoạt động</span>
+            <strong>User</strong>
+            <span>User</span>
           </div>
         </div>
       </header>

@@ -34,7 +34,6 @@ export default function SettingsPanel({
   };
 
   const handleSlugChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // Chỉ cho phép chữ thường, số, và dấu gạch ngang
     const cleaned = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     setSlug(cleaned);
   };
@@ -122,69 +121,8 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      <div className="seo-preview">
-        <div className="seo-label">
-          <Search size={14} /> XEM TRƯỚC KẾT QUẢ TÌM KIẾM
-        </div>
-        <strong>{title || 'Tiêu đề trang hiển thị ở đây'}</strong>
-        <span>https://cmsbuilder.vn/{slug || 'duong-dan-trang'}</span>
-        <p>{description || 'Mô tả trang sẽ hiển thị tại đây khi tìm kiếm trên Google...'}</p>
-      </div>
+    
 
-      <div className="settings-section publish-info">
-        <div className="section-title">
-          <CalendarClock size={16} /> Lịch sử bài viết <i />
-        </div>
-        <div className="history-card">
-          <CheckCircle2
-            size={17}
-            style={{
-              color: isPublished
-                ? 'var(--status-published-text)'
-                : 'var(--status-draft-text)',
-            }}
-          />
-          <div>
-            <strong
-              style={{
-                color: isPublished
-                  ? 'var(--status-published-text)'
-                  : 'var(--status-draft-text)',
-              }}
-            >
-              {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
-            </strong>
-            <span>
-              {lastSaved
-                ? `Cập nhật gần nhất: ${lastSaved}`
-                : isPublished
-                  ? 'Đã xuất bản lên hệ thống'
-                  : 'Đã lưu trên thiết bị này'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="visibility-row">
-        <Globe size={16} />
-        <span>Trạng thái hiển thị</span>
-        <strong
-          style={{
-            color: isPublished
-              ? 'var(--status-published-text)'
-              : 'var(--status-draft-text)',
-          }}
-        >
-          <i
-            style={{
-              background: isPublished
-                ? 'var(--status-published-text)'
-                : 'var(--status-draft-text)',
-            }}
-          />{' '}
-          {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
-        </strong>
-      </div>
     </aside>
   );
 }

@@ -29,7 +29,6 @@ import type {
 import { isValidVideoUrl, extractYouTubeId } from '../../utils/slugify';
 import mediaService from '../../services/mediaService';
 
-// ---------------------- BLOCK TOOLBAR ----------------------
 interface BlockToolbarProps {
   block: Block;
   index: number;
@@ -438,11 +437,11 @@ function VideoBlockEditor({
         }
       />
 
-      <label className="field-label">Đường dẫn video (YouTube / Vimeo / MP4)</label>
+      <label className="field-label">Đường dẫn video</label>
       <div className="url-input">
         <Link2 size={15} />
         <input
-          placeholder="https://www.youtube.com/watch?v=..."
+          placeholder=""
           value={block.url}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             onUpdate(block.id, { url: e.target.value })
@@ -451,7 +450,7 @@ function VideoBlockEditor({
         {isUrlValid ? (
           <span className="valid-tag" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Check size={12} />
-            {ytId ? 'YouTube' : 'URL hợp lệ'}
+            {ytId ? 'Hợp lệ' : 'Không hợp lệ'}
           </span>
         ) : block.url ? (
           <span
@@ -589,16 +588,7 @@ export default function BlockEditor({
 }: BlockEditorProps) {
   return (
     <main className="canvas-column">
-      <div className="canvas-topline">
-        <div>
-          <span className="eyebrow">ELEMENT PIPELINE</span>
-          <span className="pipeline-separator">·</span>
-          <span className="eyebrow">{blocks.length} KHỐI NỘI DUNG</span>
-        </div>
-        <span className="autosave">
-          <i /> Tự động đồng bộ
-        </span>
-      </div>
+      
 
       <div className="page-canvas">
         {blocks.length === 0 ? (

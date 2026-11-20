@@ -279,7 +279,7 @@ export default function PageBuilderPage() {
       block = {
         ...common,
         type: 'image',
-        src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1400&q=85',
+        src: '',
         alt: 'Hình ảnh minh họa',
         caption: 'Thêm chú thích cho hình ảnh',
       };
@@ -287,7 +287,7 @@ export default function PageBuilderPage() {
       block = {
         ...common,
         type: 'video',
-        url: 'https://www.youtube.com/watch?v=ysz5S6PUM-U',
+        url: '',
         title: 'Video mới',
       };
     }
@@ -650,7 +650,7 @@ export default function PageBuilderPage() {
         <div className="workspace">
           <div className="editor-toolbar">
             <div className="toolbar-left">
-              <span className="toolbar-label">Thêm khối nhanh:</span>
+              <span className="toolbar-label">Thêm khối:</span>
               <span className="toolbar-divider" />
 
               <button
@@ -679,17 +679,7 @@ export default function PageBuilderPage() {
             </div>
 
             <div className="toolbar-right">
-              {selectedBlock && (
-                <span
-                  style={{
-                    marginRight: '12px',
-                    color: 'var(--brand-primary)',
-                    fontWeight: 600,
-                  }}
-                >
-                  Đang chọn: {selectedBlock.label}
-                </span>
-              )}
+              
               <button
                 type="button"
                 className="mobile-settings-link"
@@ -697,7 +687,6 @@ export default function PageBuilderPage() {
               >
                 Cài đặt
               </button>
-              <span>{blocks.length} khối nội dung</span>
             </div>
           </div>
 

@@ -25,7 +25,6 @@ const navItems: NavItem[] = [
     path: '/pages',
     matchPaths: ['/pages', '/admin/pages'],
   },
-  { icon: FolderOpen, label: 'Thư viện Media', path: '/media' },
   {
     icon: PanelsTopLeft,
     label: 'Trang công khai',
@@ -77,7 +76,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="nav-caption">QUẢN TRỊ HỆ THỐNG</div>
         <nav>
           {navItems.map((item) => {
             const { icon: Icon, label, path } = item;
@@ -96,20 +94,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="workspace-card">
-          <div className="workspace-icon">
-            <Blocks size={17} />
-          </div>
-          <div>
-            <strong>CMS Workspace</strong>
-            <span>Gói miễn phí · Đã sử dụng</span>
-            <div className="usage">
-              <i />
-            </div>
-            <small>85 / 100 lượt sử dụng</small>
-          </div>
-          <ChevronDown size={15} />
-        </div>
+        
       </aside>
     </>
   );

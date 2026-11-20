@@ -1,18 +1,12 @@
 
 from app.core.config import DATABASE_URL
-from pathlib import Path
 from typing import Generator
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
-# Xac dinh thu muc Backend
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-
-
-
-# Cau hinh ket noi SQLite
+# Cau hinh ket noi database
 connect_args = {}
 
 if DATABASE_URL.startswith("sqlite"):
@@ -21,7 +15,8 @@ if DATABASE_URL.startswith("sqlite"):
 # Tao Engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    connect_args=connect_args,
+    pool_pre_ping=True,
 )
 
 # Bat kiem tra Foreign Key cho SQLite
