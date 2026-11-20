@@ -6,6 +6,7 @@ export type PreviewSize = 'desktop' | 'tablet' | 'mobile';
 
 export interface BaseBlock {
   id: string;
+  backendId?: number;
   type: BlockType;
   label: string;
 }
@@ -22,6 +23,7 @@ export interface ImageBlock extends BaseBlock {
   src: string;
   alt: string;
   caption: string;
+  mediaId?: number | null;
 }
 
 export interface VideoBlock extends BaseBlock {

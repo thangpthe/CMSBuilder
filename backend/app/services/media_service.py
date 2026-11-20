@@ -24,8 +24,8 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 # Thu muc luu tru hinh anh
 UPLOAD_DIR = BACKEND_DIR / "uploads" / "images"
 
-# Dung luong toi da: 10 MB
-MAX_FILE_SIZE = 10 * 1024 * 1024
+# Dung luong toi da: 5 MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 # Moi lan doc toi da 1 MB
 CHUNK_SIZE = 1024 * 1024
@@ -35,24 +35,29 @@ CHUNK_SIZE = 1024 * 1024
 ALLOWED_EXTENSIONS = {
     ".jpg": "JPEG",
     ".jpeg": "JPEG",
-    ".png": "PNG",
-    ".webp": "WEBP"
+    ".png": "PNG"
 }
 
 
 # Dinh dang anh sang phan mo rong luu tru
 FORMAT_EXTENSIONS = {
     "JPEG": ".jpg",
-    "PNG": ".png",
-    "WEBP": ".webp"
+    "PNG": ".png"
 }
 
 
 # Dinh dang anh sang MIME type
 FORMAT_MIME_TYPES = {
     "JPEG": "image/jpeg",
-    "PNG": "image/png",
-    "WEBP": "image/webp"
+    "PNG": "image/png"
+}
+
+
+# Content-Type duoc chap nhan khi client gui len
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/jpg",
+    "image/png"
 }
 
 
@@ -110,7 +115,24 @@ async def store_image_file(
 
     if expected_format is None:
         raise ImageValidationError(
-            "Chi chap nhan JPG, JPEG, PNG va WEBP."
+            "Chi chap nhan dinh dang JPG, JPEG va PNG."
+        )
+
+    # Kiem tra Content-Type neu client gui len
+    content_type = (
+        (upload_file.content_type or "")
+        .split(";")[0]
+        .strip()
+        .lower()
+    )
+
+    if (
+        content_type
+        and content_type != "application/octet-stream"
+        and content_type not in ALLOWED_CONTENT_TYPES
+    ):
+        raise ImageValidationError(
+            "Chi chap nhan dinh dang JPG, JPEG va PNG."
         )
 
     # Tao thu muc neu chua ton tai
@@ -145,10 +167,10 @@ async def store_image_file(
 
                 total_size += len(chunk)
 
-                # Dung khi vuot qua 10 MB
+                # Dung khi vuot qua 5 MB
                 if total_size > MAX_FILE_SIZE:
                     raise ImageValidationError(
-                        "Dung luong hinh anh vuot qua 10 MB."
+                        "Dung luong hinh anh vuot qua 5 MB."
                     )
 
                 temp_file.write(chunk)

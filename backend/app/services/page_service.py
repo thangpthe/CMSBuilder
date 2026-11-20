@@ -13,13 +13,24 @@ def create_page(
     db: Session,
     owner_id: int,
     title: str,
-    description: str | None = None
+    description: str | None = None,
+    slug: str | None = None
 ) -> Page:
+
+    if slug:
+        existing_page_id = db.scalar(
+            select(Page.id).where(Page.slug == slug)
+        )
+        if existing_page_id is not None:
+            raise SlugConflictError(
+                "Slug da ton tai. Vui long chon slug khac."
+            )
 
     new_page = Page(
         owner_id=owner_id,
         title=title.strip(),
         description=description.strip() if description else None,
+        slug=slug if slug else None,
         status="draft"
     )
 
@@ -133,6 +144,107 @@ def generate_unique_slug(
 # Loi khi khong tim thay Page thuoc User
 class PageNotFoundError(Exception):
     pass
+
+
+# Loi khi Slug bi trung voi Page khac
+class SlugConflictError(Exception):
+    pass
+
+
+# Cap nhat Page thuoc User
+def update_page(
+    db: Session,
+    page_id: int,
+    owner_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    slug: str | None = None,
+    status: str | None = None,
+    description_provided: bool = False,
+    slug_provided: bool = False
+) -> Page:
+
+    statement = select(Page).where(
+        Page.id == page_id,
+        Page.owner_id == owner_id
+    )
+
+    page = db.scalar(statement)
+
+    if page is None:
+        raise PageNotFoundError(
+            "Khong tim thay Page."
+        )
+
+    if title is not None:
+        page.title = title.strip()
+
+    if description_provided:
+        page.description = description.strip() if description else None
+
+    if slug_provided:
+        if slug:
+            existing_page_id = db.scalar(
+                select(Page.id).where(
+                    Page.slug == slug,
+                    Page.id != page_id
+                )
+            )
+            if existing_page_id is not None:
+                raise SlugConflictError(
+                    "Slug da ton tai. Vui long chon slug khac."
+                )
+            page.slug = slug
+        else:
+            page.slug = None
+
+    if status is not None:
+        if status == "published":
+            if not page.slug:
+                page.slug = generate_unique_slug(db, page.title)
+            page.status = "published"
+            if page.published_at is None:
+                page.published_at = datetime.now(timezone.utc)
+        else:
+            page.status = "draft"
+            page.published_at = None
+
+    try:
+        db.commit()
+        db.refresh(page)
+        return page
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+# Xoa Page thuoc User (tu dong cascade xoa ContentBlock)
+def delete_page(
+    db: Session,
+    page_id: int,
+    owner_id: int
+) -> None:
+
+    statement = select(Page).where(
+        Page.id == page_id,
+        Page.owner_id == owner_id
+    )
+
+    page = db.scalar(statement)
+
+    if page is None:
+        raise PageNotFoundError(
+            "Khong tim thay Page."
+        )
+
+    try:
+        db.delete(page)
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 # Publish Page

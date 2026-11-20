@@ -12,6 +12,7 @@ export interface SettingsPanelProps {
   visible: boolean;
   onClose: () => void;
   lastSaved?: string | null;
+  status?: 'draft' | 'published';
 }
 
 export default function SettingsPanel({
@@ -24,14 +25,15 @@ export default function SettingsPanel({
   visible,
   onClose,
   lastSaved,
+  status = 'draft',
 }: SettingsPanelProps) {
+  const isPublished = status === 'published';
   const handleAutoSlug = () => {
     const generated = generateSlug(title);
     setSlug(generated || 'trang-moi');
   };
 
   const handleSlugChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // Chỉ cho phép chữ thường, số, và dấu gạch ngang
     const cleaned = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     setSlug(cleaned);
   };
@@ -110,7 +112,7 @@ export default function SettingsPanel({
         <div
           className="char-count"
           style={{
-            color: description.length > 160 ? '#e26c79' : undefined,
+            color: description.length > 160 ? 'var(--status-danger-text)' : undefined,
             fontWeight: description.length > 160 ? 600 : 400,
           }}
         >
@@ -119,37 +121,8 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      <div className="seo-preview">
-        <div className="seo-label">
-          <Search size={14} /> XEM TRƯỚC KẾT QUẢ TÌM KIẾM
-        </div>
-        <strong>{title || 'Tiêu đề trang hiển thị ở đây'}</strong>
-        <span>https://cmsbuilder.vn/{slug || 'duong-dan-trang'}</span>
-        <p>{description || 'Mô tả trang sẽ hiển thị tại đây khi tìm kiếm trên Google...'}</p>
-      </div>
+    
 
-      <div className="settings-section publish-info">
-        <div className="section-title">
-          <CalendarClock size={16} /> Lịch sử bài viết <i />
-        </div>
-        <div className="history-card">
-          <CheckCircle2 size={17} />
-          <div>
-            <strong>Đã lưu vào bộ nhớ nháp</strong>
-            <span>
-              {lastSaved ? `Cập nhật gần nhất: ${lastSaved}` : 'Đã lưu trên thiết bị này'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="visibility-row">
-        <Globe size={16} />
-        <span>Trạng thái hiển thị</span>
-        <strong>
-          <i /> Bản nháp
-        </strong>
-      </div>
     </aside>
   );
 }

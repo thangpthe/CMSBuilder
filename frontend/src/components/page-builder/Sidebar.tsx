@@ -14,15 +14,32 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   path: string;
+  matchPaths?: string[];
 }
 
 const navItems: NavItem[] = [
   { icon: Blocks, label: 'Trình soạn thảo', path: '/page-builder' },
-  { icon: FileText, label: 'Quản lý trang', path: '/pages' },
-  { icon: FolderOpen, label: 'Thư viện Media', path: '/media' },
-  { icon: PanelsTopLeft, label: 'Trang công khai', path: '/p' },
+  {
+    icon: FileText,
+    label: 'Quản lý trang',
+    path: '/pages',
+    matchPaths: ['/pages', '/admin/pages'],
+  },
+  {
+    icon: PanelsTopLeft,
+    label: 'Trang công khai',
+    path: '/p',
+    matchPaths: ['/p', '/public'],
+  },
   { icon: Settings, label: 'Cài đặt hệ thống', path: '/settings' },
 ];
+
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const prefixes = item.matchPaths ?? [item.path];
+  return prefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
 
 export interface SidebarProps {
   open: boolean;
@@ -59,10 +76,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="nav-caption">QUẢN TRỊ HỆ THỐNG</div>
         <nav>
-          {navItems.map(({ icon: Icon, label, path }) => {
-            const isActive = location.pathname === path;
+          {navItems.map((item) => {
+            const { icon: Icon, label, path } = item;
+            const isActive = isNavItemActive(location.pathname, item);
             return (
               <button
                 key={label}
@@ -77,20 +94,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="workspace-card">
-          <div className="workspace-icon">
-            <Blocks size={17} />
-          </div>
-          <div>
-            <strong>CMS Workspace</strong>
-            <span>Gói miễn phí · Đã sử dụng</span>
-            <div className="usage">
-              <i />
-            </div>
-            <small>85 / 100 lượt sử dụng</small>
-          </div>
-          <ChevronDown size={15} />
-        </div>
+        
       </aside>
     </>
   );

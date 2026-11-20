@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 export interface TopbarProps {
   title: string;
+  status?: 'draft' | 'published';
   onMenu: () => void;
   onPreview: () => void;
   onSave: () => void;
@@ -22,12 +23,14 @@ export interface TopbarProps {
 
 export default function Topbar({
   title,
+  status = 'draft',
   onMenu,
   onPreview,
   onSave,
   onPublish,
   onSettings,
 }: TopbarProps) {
+  const isPublished = status === 'published';
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -46,26 +49,6 @@ export default function Topbar({
           <Menu size={20} />
         </button>
 
-        <div className="breadcrumb">
-          <span>CMS Workspace</span>
-          <ChevronRight size={14} />
-          <button
-            type="button"
-            onClick={handleBack}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-              font: 'inherit',
-              fontWeight: 600,
-              color: 'inherit',
-              cursor: 'pointer',
-            }}
-          >
-            Quản lý trang
-          </button>
-        </div>
-
         <div className="global-search">
           <Search size={16} />
           <input
@@ -75,10 +58,7 @@ export default function Topbar({
           />
         </div>
 
-        <button type="button" className="help-link">
-          <BookOpen size={16} />
-          <span>Trung tâm trợ giúp</span>
-        </button>
+        
 
         <button
           type="button"
@@ -90,10 +70,10 @@ export default function Topbar({
         </button>
 
         <div className="profile">
-          <div className="avatar">AD</div>
+          <div className="avatar"></div>
           <div>
-            <strong>Quản trị viên</strong>
-            <span>Admin · Hoạt động</span>
+            <strong>User</strong>
+            <span>User</span>
           </div>
         </div>
       </header>
@@ -111,6 +91,11 @@ export default function Topbar({
                 background: 'transparent',
                 cursor: 'pointer',
                 padding: 0,
+                minHeight: '2.75rem',
+                minWidth: '2.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               ‹
@@ -118,7 +103,11 @@ export default function Topbar({
             <div>
               <h1>{title || 'Chưa đặt tiêu đề'}</h1>
               <p>
-                Trang / {title || 'Bản nháp mới'} · <span className="status-dot" /> Bản nháp
+                Trang / {title || 'Bản nháp mới'} ·{' '}
+                <span
+                  className={`status-dot ${isPublished ? 'is-published' : 'is-draft'}`}
+                />{' '}
+                {isPublished ? 'Đã xuất bản' : 'Bản nháp'}
               </p>
             </div>
           </div>

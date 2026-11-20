@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import {
   AlignLeft,
   Image as ImageIcon,
@@ -16,6 +16,7 @@ import {
   Pilcrow,
   Check,
   AlertTriangle,
+  Upload,
 } from 'lucide-react';
 import type {
   Block,
@@ -26,8 +27,8 @@ import type {
   TextHeadingLevel,
 } from '../../types/pageBuilder';
 import { isValidVideoUrl, extractYouTubeId } from '../../utils/slugify';
+import mediaService from '../../services/mediaService';
 
-// ---------------------- BLOCK TOOLBAR ----------------------
 interface BlockToolbarProps {
   block: Block;
   index: number;
@@ -107,7 +108,7 @@ function BlockToolbar({
             onDelete(block.id);
           }}
           aria-label="Xóa khối"
-          style={{ color: '#e26c79' }}
+          style={{ color: 'var(--status-danger-text)' }}
         >
           <Trash2 size={14} />
         </button>
@@ -169,7 +170,7 @@ function TextBlockEditor({
           <Pilcrow size={14} />
         </button>
         <span className="format-divider" />
-        <span style={{ fontSize: '10px', color: '#8d94a4', alignSelf: 'center' }}>
+        <span style={{ fontSize: '10px', color: 'var(--text-muted)', alignSelf: 'center' }}>
           Định dạng: {block.level.toUpperCase()}
         </span>
       </div>
@@ -210,6 +211,10 @@ function TextBlockEditor({
   );
 }
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png)$/i;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
 function ImageBlockEditor({
   block,
   onUpdate,
@@ -217,6 +222,78 @@ function ImageBlockEditor({
   block: ImageBlock;
   onUpdate: (id: string, changes: Partial<ImageBlock>) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const hasValidExtension = ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+    const hasValidMime =
+      !file.type || ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase());
+    const isValidType = hasValidExtension && hasValidMime;
+    if (!isValidType) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận JPG, JPEG hoặc PNG.',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Dung lượng ảnh vượt quá giới hạn 5MB. Vui lòng chọn ảnh nhỏ hơn.',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setUploading(true);
+    setUploadStatus(null);
+
+    try {
+      const res = await mediaService.uploadImage(file);
+      onUpdate(block.id, {
+        src: res.url,
+        mediaId: res.id,
+        alt: block.alt || res.original_filename,
+      });
+      setUploadStatus({
+        type: 'success',
+        message: `Đã tải lên: ${res.original_filename}`,
+      });
+    } catch (err: unknown) {
+      const responseData = (
+        err as { response?: { data?: { detail?: string; message?: string } } }
+      )?.response?.data;
+      const msg =
+        responseData?.detail ||
+        responseData?.message ||
+        (err instanceof Error ? err.message : null) ||
+        'Tải ảnh lên thất bại. Vui lòng thử lại.';
+      setUploadStatus({
+        type: 'error',
+        message: msg,
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="media-block-content">
       <div className="media-preview">
@@ -234,15 +311,76 @@ function ImageBlockEditor({
               height: '100%',
               display: 'grid',
               placeItems: 'center',
-              color: '#9ba1b0',
+              color: 'var(--text-muted)',
               fontSize: '12px',
             }}
           >
-            Chưa có hình ảnh. Vui lòng nhập URL bên dưới.
+            Chưa có hình ảnh. Vui lòng tải ảnh lên hoặc nhập URL bên dưới.
           </div>
         )}
         <div className="media-overlay">Ảnh xem trước</div>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+          onChange={handleFileChange}
+          disabled={uploading}
+          aria-label="Tải ảnh lên từ máy tính"
+          style={{ display: 'none' }}
+        />
+        <button
+          type="button"
+          className="tool-tab"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: uploading ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <Upload size={14} />
+          {uploading ? 'Đang tải ảnh lên...' : 'Tải ảnh lên (JPG/JPEG/PNG)'}
+        </button>
+
+        {block.mediaId ? (
+          <span
+            className="valid-tag"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <Check size={12} />
+            Media ID #{block.mediaId}
+          </span>
+        ) : null}
+      </div>
+
+      {uploadStatus && (
+        <div
+          role={uploadStatus.type === 'error' ? 'alert' : 'status'}
+          data-testid={uploadStatus.type === 'error' ? 'image-upload-error' : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '12px',
+            marginBottom: 10,
+            padding: '8px 10px',
+            borderRadius: 6,
+            background: uploadStatus.type === 'success' ? '#ecfdf5' : '#fef2f2',
+            color: uploadStatus.type === 'success' ? '#047857' : '#b91c1c',
+            border: uploadStatus.type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca',
+          }}
+        >
+          {uploadStatus.type === 'error' && (
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          )}
+          <span>{uploadStatus.message}</span>
+        </div>
+      )}
 
       <label className="field-label">Đường dẫn hình ảnh (Image URL) <b>*</b></label>
       <input
@@ -250,7 +388,7 @@ function ImageBlockEditor({
         placeholder="https://example.com/image.jpg"
         value={block.src}
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-          onUpdate(block.id, { src: e.target.value })
+          onUpdate(block.id, { src: e.target.value, mediaId: null })
         }
       />
 
@@ -299,11 +437,11 @@ function VideoBlockEditor({
         }
       />
 
-      <label className="field-label">Đường dẫn video (YouTube / Vimeo / MP4)</label>
+      <label className="field-label">Đường dẫn video</label>
       <div className="url-input">
         <Link2 size={15} />
         <input
-          placeholder="https://www.youtube.com/watch?v=..."
+          placeholder=""
           value={block.url}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             onUpdate(block.id, { url: e.target.value })
@@ -312,14 +450,14 @@ function VideoBlockEditor({
         {isUrlValid ? (
           <span className="valid-tag" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Check size={12} />
-            {ytId ? 'YouTube' : 'URL hợp lệ'}
+            {ytId ? 'Hợp lệ' : 'Không hợp lệ'}
           </span>
         ) : block.url ? (
           <span
             className="valid-tag"
             style={{
-              background: '#fee8e8',
-              color: '#d94343',
+              background: 'var(--status-danger-bg)',
+              color: 'var(--status-danger-text)',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -331,12 +469,35 @@ function VideoBlockEditor({
         ) : (
           <span
             className="valid-tag"
-            style={{ background: '#f0f1f5', color: '#8d94a4' }}
+            style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
           >
             Chưa có URL
           </span>
         )}
       </div>
+
+      {(!block.url.trim() || !isUrlValid) && (
+        <div
+          role="alert"
+          data-testid="video-url-error"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '12px',
+            marginTop: 6,
+            marginBottom: 10,
+            padding: '8px 10px',
+            borderRadius: 6,
+            background: '#fef2f2',
+            color: '#b91c1c',
+            border: '1px solid #fecaca',
+          }}
+        >
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          <span>Vui lòng nhập URL video hợp lệ (YouTube, Vimeo hoặc .mp4/.webm/.ogg).</span>
+        </div>
+      )}
 
       <div className="video-preview">
         {ytId ? (
@@ -427,16 +588,7 @@ export default function BlockEditor({
 }: BlockEditorProps) {
   return (
     <main className="canvas-column">
-      <div className="canvas-topline">
-        <div>
-          <span className="eyebrow">ELEMENT PIPELINE</span>
-          <span className="pipeline-separator">·</span>
-          <span className="eyebrow">{blocks.length} KHỐI NỘI DUNG</span>
-        </div>
-        <span className="autosave">
-          <i /> Tự động đồng bộ
-        </span>
-      </div>
+      
 
       <div className="page-canvas">
         {blocks.length === 0 ? (
@@ -444,7 +596,7 @@ export default function BlockEditor({
             style={{
               padding: '40px 20px',
               textAlign: 'center',
-              color: '#8b91a1',
+              color: 'var(--text-muted)',
             }}
           >
             <p style={{ margin: 0, fontWeight: 600 }}>
@@ -458,6 +610,7 @@ export default function BlockEditor({
           blocks.map((block, index) => (
             <section
               key={block.id}
+              data-block-id={block.id}
               className={`content-block ${
                 selectedId === block.id ? 'is-selected' : ''
               }`}

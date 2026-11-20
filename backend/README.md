@@ -1,6 +1,6 @@
 # CMSBuilder Backend
 
-Backend sử dụng Python 3.12, FastAPI, SQLAlchemy và SQLite.
+Backend sử dụng Python 3.12, FastAPI, SQLAlchemy và PostgreSQL.
 Chạy các lệnh dưới đây bằng Git Bash trên Windows, từ thư mục backend.
 
 ## Thiết lập lần đầu
