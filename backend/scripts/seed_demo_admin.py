@@ -1,51 +1,66 @@
 import argparse
+import sys
+from pathlib import Path
 
 from sqlalchemy import select
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.security import get_password_hash
 from app.db.session import SessionLocal
 from app.models.user import User
 
+SEED_USERS = (
+    ("demo_admin", "demo123", "system_admin"),
+    ("page_admin", "demo123", "page_admin"),
+)
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Tao tai khoan admin de demo tren may ca nhan."
+        description="Tao cac tai khoan demo (demo_admin va page_admin) tren may ca nhan."
     )
     parser.add_argument(
         "--reset-password",
         action="store_true",
-        help="Dat lai mat khau demo_admin thanh demo123.",
+        help="Dat lai mat khau cua demo_admin va page_admin thanh demo123.",
     )
     args = parser.parse_args()
 
-    username = "demo_admin"
-    password = "demo123"
+    messages: list[str] = []
 
     with SessionLocal.begin() as db:
-        existing = db.scalar(
-            select(User).where(User.username == username)
-        )
+        for username, password, role in SEED_USERS:
+            existing = db.scalar(
+                select(User).where(User.username == username)
+            )
 
-        if existing is None:
-            db.add(
-                User(
-                    username=username,
-                    hashed_password=get_password_hash(password),
-                    role="system_admin",
-                    is_active=True,
+            if existing is None:
+                db.add(
+                    User(
+                        username=username,
+                        hashed_password=get_password_hash(password),
+                        role=role,
+                        is_active=True,
+                    )
                 )
-            )
-            message = "Da tao tai khoan demo_admin."
-        elif args.reset_password:
-            existing.hashed_password = get_password_hash(password)
-            message = "Da cap nhat mat khau demo_admin."
-        else:
-            message = (
-                "Tai khoan demo_admin da ton tai. "
-                "Dung --reset-password de doi mat khau thanh demo123."
-            )
+                messages.append(f"Da tao tai khoan {username} ({role}).")
+            elif args.reset_password:
+                existing.hashed_password = get_password_hash(password)
+                existing.is_active = True
+                messages.append(
+                    f"Da cap nhat mat khau {username} ({existing.role})."
+                )
+            else:
+                messages.append(
+                    f"Tai khoan {username} ({existing.role}) da ton tai. "
+                    f"Dung --reset-password de doi mat khau thanh {password}."
+                )
 
-    print(message)
+    for message in messages:
+        print(message)
 
 
 if __name__ == "__main__":
