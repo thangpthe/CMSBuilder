@@ -1,32 +1,17 @@
 
-from app.core.config import DATABASE_URL
 from typing import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
+from app.core.config import DATABASE_URL
 
-# Cau hinh ket noi database
-connect_args = {}
-
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
 # Tao Engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args,
     pool_pre_ping=True,
 )
-
-# Bat kiem tra Foreign Key cho SQLite
-if DATABASE_URL.startswith("sqlite"):
-
-    @event.listens_for(engine, "connect")
-    def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
 
 
 # Tao SessionLocal

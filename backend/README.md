@@ -12,8 +12,8 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
-File `.env` chứa biến `DATABASE_URL`. Cấu hình mẫu sử dụng file SQLite
-`cmsbuilder.db` trong thư mục `backend`.
+File `.env` chứa biến `DATABASE_URL`.
+```
 
 ## Khởi chạy Backend
 
@@ -31,7 +31,7 @@ python -m uvicorn app.main:app --reload
 - Mở Swagger UI tại http://127.0.0.1:8000/docs.
 - Nhấn Ctrl + C trong Git Bash để dừng server.
 
-## Kiểm tra SQLite
+## Kiểm tra kết nối Database
 
 Sau khi dừng server, chạy trong cùng cửa sổ Git Bash:
 

@@ -15,7 +15,7 @@ load_dotenv(BACKEND_DIR / ".env")
 # Cau hinh Database
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"sqlite:///{BACKEND_DIR / 'cmsbuilder.db'}"
+    "postgresql+psycopg://postgres:postgres@localhost:5432/cmsbuilder"
 )
 
 

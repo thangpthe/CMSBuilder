@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login } from "../../services/authService";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { login, getCurrentUser, getDefaultRouteForRole } from "../../services/authService";
+import { useAuth } from "../../hooks/useAuth";
 import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 
@@ -23,6 +24,8 @@ interface LoginErrors {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user: authUser, loginUser } = useAuth();
 
   const [form, setForm] = useState({
     identifier: "",
@@ -34,6 +37,14 @@ function LoginPage() {
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Neu da dang nhap tu truoc, tu dong chuyen huong ve trang mac dinh theo role
+  useEffect(() => {
+    if (isAuthenticated) {
+      const destination = getDefaultRouteForRole(authUser?.role);
+      navigate(destination, { replace: true });
+    }
+  }, [isAuthenticated, authUser?.role, navigate]);
 
   // Validate dữ liệu đầu vào
   const validate = () => {
@@ -95,9 +106,28 @@ function LoginPage() {
         throw new Error("INVALID_RESPONSE");
       }
 
-      localStorage.setItem("access_token", response.access_token);
+      // Lay thong tin user (tu login response hoac goi API /api/auth/me)
+      let loggedInUser = response.user;
+      if (!loggedInUser) {
+        localStorage.setItem("access_token", response.access_token);
+        try {
+          loggedInUser = await getCurrentUser();
+        } catch {
+          // tiep tuc neu api me fail
+        }
+      }
 
-      navigate("/dashboard", { replace: true });
+      // Cap nhat AuthContext va localStorage
+      loginUser(response.access_token, loggedInUser);
+
+      // Chuyen huong theo dung role cua user (system_admin -> /dashboard, page_admin -> /pages)
+      const fromPath = (location.state as { from?: { pathname?: string } })?.from?.pathname;
+      const targetDestination =
+        fromPath && fromPath !== "/login"
+          ? fromPath
+          : getDefaultRouteForRole(loggedInUser?.role);
+
+      navigate(targetDestination, { replace: true });
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {

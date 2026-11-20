@@ -329,17 +329,61 @@ def get_published_page_by_slug(
     db: Session,
     slug: str
 ) -> Page | None:
+    from sqlalchemy import or_
+
+    clean_slug = slug.strip().strip("/").lower()
+
+    # Match theo slug (khong phan biet hoa thuong va bo dau gach cheo)
+    conditions = [
+        func.lower(func.trim(Page.slug, "/")) == clean_slug,
+    ]
+    if clean_slug.isdigit():
+        conditions.append(Page.id == int(clean_slug))
 
     statement = (
         select(Page)
         .options(
+            selectinload(Page.owner),
             selectinload(Page.content_blocks)
             .selectinload(ContentBlock.media)
         )
         .where(
-            Page.slug == slug,
+            or_(*conditions),
             Page.status == "published"
         )
     )
 
     return db.scalar(statement)
+
+
+# Lay tat ca cac Page da Publish tu toan bo nguoi dung
+def get_all_published_pages(
+    db: Session,
+    skip: int = 0,
+    limit: int = 50
+) -> tuple[list[Page], int]:
+    count_statement = (
+        select(func.count())
+        .select_from(Page)
+        .where(Page.status == "published")
+    )
+    total = db.scalar(count_statement) or 0
+
+    statement = (
+        select(Page)
+        .options(
+            selectinload(Page.owner),
+            selectinload(Page.content_blocks),
+        )
+        .where(Page.status == "published")
+        .order_by(
+            Page.published_at.desc().nullslast(),
+            Page.updated_at.desc(),
+            Page.id.desc()
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+
+    items = list(db.scalars(statement).all())
+    return items, total

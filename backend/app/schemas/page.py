@@ -121,15 +121,35 @@ class PageBlockResponse(BaseModel):
 class PageDetailResponse(PageResponse):
     blocks: list[PageBlockResponse]
 
+# Response cho danh sach Public Page
+class PublicPageSummaryResponse(BaseModel):
+    id: int
+    title: str
+    description: str | None = None
+    slug: str
+    status: str = "published"
+    published_at: datetime | None = None
+    author_name: str | None = None
+    blocks_count: int = 0
+
+
+class PublicPageListResponse(BaseModel):
+    items: list[PublicPageSummaryResponse]
+    total: int
+    skip: int = 0
+    limit: int = 50
+
+
 # Response cho Public Page
 class PublicPageResponse(BaseModel):
 
     id: int
     title: str
-    description: str | None
+    description: str | None = None
     slug: str
     status: str
-    published_at: datetime | None
+    published_at: datetime | None = None
+    author_name: str | None = None
 
     # Danh sach ContentBlock
     blocks: list[PageBlockResponse]

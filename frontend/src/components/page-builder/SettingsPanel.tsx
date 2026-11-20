@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { Settings, CheckCircle2, CalendarClock, Globe, Search } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { generateSlug } from '../../utils/slugify';
 
 export interface SettingsPanelProps {
@@ -121,7 +121,16 @@ export default function SettingsPanel({
         </div>
       </div>
 
-    
+      <div className="settings-section" style={{ borderTop: '1px solid var(--border-subtle, #e2e8f0)', paddingTop: '16px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          Trạng thái: <strong>{isPublished ? 'Đã xuất bản' : 'Bản nháp'}</strong>
+        </div>
+        {lastSaved && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Lưu gần nhất: {lastSaved}
+          </div>
+        )}
+      </div>
 
     </aside>
   );

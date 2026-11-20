@@ -1,9 +1,7 @@
 import time
-from sqlalchemy import text
-from app.core.security import get_current_user, get_token_claims
 import logging
-
-from sqlalchemy import or_, select
+import jwt
+from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session
 
 from fastapi import (
@@ -12,10 +10,14 @@ from fastapi import (
     HTTPException,
     status
 )
+from fastapi.security import HTTPAuthorizationCredentials
 
+from app.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
 from app.core.security import (
     create_access_token,
     verify_password,
+    get_current_user,
+    bearer_scheme,
     DUMMY_HASH
 )
 
@@ -92,33 +94,57 @@ def login(
     # Tao JWT sau khi dang nhap thanh cong
     access_token = create_access_token(user.id)
 
-    # Tra Token cho Frontend
+    # Tra Token va thong tin User cho Frontend
     return TokenResponse(
         access_token=access_token,
-        token_type="bearer"
+        token_type="bearer",
+        user={
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+        }
     )
 
 @router.get("/me")
 def read_current_user(user: User = Depends(get_current_user)):
-    return {"id": user.id, "username": user.username, "role": user.role}
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+    }
 
 
 @router.post("/logout")
 def logout(
-    claims: dict = Depends(get_token_claims),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
-    db.execute(
-        text("DELETE FROM revoked_tokens WHERE expires_at <= :now"),
-        {"now": int(time.time())},
-    )
-    db.execute(
-        text("""
-            INSERT INTO revoked_tokens (jti, expires_at)
-            VALUES (:jti, :expires_at)
-            ON CONFLICT(jti) DO NOTHING
-        """),
-        {"jti": claims["jti"], "expires_at": claims["exp"]},
-    )
-    db.commit()
+    if credentials and credentials.scheme.lower() == "bearer" and JWT_SECRET_KEY:
+        try:
+            claims = jwt.decode(
+                credentials.credentials,
+                JWT_SECRET_KEY,
+                algorithms=[JWT_ALGORITHM],
+                options={"require": ["sub", "exp", "jti"]},
+            )
+            now = int(time.time())
+            db.execute(
+                text("DELETE FROM revoked_tokens WHERE expires_at <= :now"),
+                {"now": now},
+            )
+            db.execute(
+                text("""
+                    INSERT INTO revoked_tokens (jti, expires_at)
+                    VALUES (:jti, :expires_at)
+                    ON CONFLICT(jti) DO NOTHING
+                """),
+                {"jti": claims["jti"], "expires_at": claims["exp"]},
+            )
+            db.commit()
+        except Exception:
+            # Token khong hop le hoac da het han -> khong can thu hoi
+            pass
+
     return {"message": "Da dang xuat"}

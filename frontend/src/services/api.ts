@@ -27,10 +27,15 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      // Tùy chọn redirect về /login nếu không phải đang ở trang login
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      const requestUrl = error.config?.url || '';
+      // Khong tu dong redirect neu loi 401 den tu endpoint logout hoac login
+      if (!requestUrl.includes('/api/auth/logout') && !requestUrl.includes('/api/auth/login')) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('cms_user');
+        // Tùy chọn redirect về /login nếu không phải đang ở trang login
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

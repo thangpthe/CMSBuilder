@@ -382,7 +382,7 @@ function ImageBlockEditor({
         </div>
       )}
 
-      <label className="field-label">Đường dẫn hình ảnh (Image URL) <b>*</b></label>
+      {/* <label className="field-label">Đường dẫn hình ảnh (Image URL) <b>*</b></label>
       <input
         className="field-input"
         placeholder="https://example.com/image.jpg"
@@ -390,7 +390,7 @@ function ImageBlockEditor({
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
           onUpdate(block.id, { src: e.target.value, mediaId: null })
         }
-      />
+      /> */}
 
       <label className="field-label">Văn bản thay thế (Alt text)</label>
       <input
@@ -476,7 +476,7 @@ function VideoBlockEditor({
         )}
       </div>
 
-      {(!block.url.trim() || !isUrlValid) && (
+      {block.url.trim() !== '' && !isUrlValid && (
         <div
           role="alert"
           data-testid="video-url-error"
@@ -495,7 +495,27 @@ function VideoBlockEditor({
           }}
         >
           <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-          <span>Vui lòng nhập URL video hợp lệ (YouTube, Vimeo hoặc .mp4/.webm/.ogg).</span>
+          <span>URL video không hợp lệ. Vui lòng nhập link YouTube, Vimeo hoặc file video (.mp4, .webm, .ogg).</span>
+        </div>
+      )}
+
+      {!block.url.trim() && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '12px',
+            marginTop: 6,
+            marginBottom: 10,
+            padding: '8px 10px',
+            borderRadius: 6,
+            background: '#f0f4ff',
+            color: '#4a5568',
+            border: '1px solid #c3dafe',
+          }}
+        >
+          <span>💡 Chưa có URL — Block này sẽ được bỏ qua khi lưu. Nhập URL để hiển thị video.</span>
         </div>
       )}
 

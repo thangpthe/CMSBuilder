@@ -1,785 +1,258 @@
-# HƯỚNG DẪN SỬ DỤNG GIT & GITHUB
-## Dự án CMSBuilder – Quy trình làm việc dành cho thành viên
+# CMSBuilder – Nền Tảng Xây Dựng Trang Nội Dung Đa Phương Tiện
+
+> **Dự án Mock Project**: Hệ thống CMS No-Code / Low-Code kéo thả trực quan cho phép biên tập, quản lý và xuất bản trang đích đa phương tiện tốc độ cao.
 
 ---
 
-# PHẦN I. THÔNG TIN REPOSITORY VÀ PHÂN CÔNG BRANCH
+## 📌 Mục lục
 
-## 1. Repository của dự án
-
-- GitHub Repository: https://github.com/thangpthe/CMSBuilder
-- Branch tích hợp: `develop`
-- Branch ổn định: `main`
-
-## 2. Phân công branch cho từng thành viên
-
-Mỗi thành viên được phân công một branch riêng để làm việc.
-
-| Thành viên | Branch được phân công |
-|---|---|
-| Phùng Thế Thăng – Team Leader | `feature/thang` |
-| Đỗ Huy Đạt | `feature/dat` |
-| Nguyễn Nguyên Vũ | `feature/vu` |
-| Tạ Thị Thủy | `feature/thuy` |
-| Nguyễn Quang Anh | `feature/quang-anh` |
-
-**Quy định bắt buộc:**
-
-1. Mỗi thành viên chỉ làm việc trên branch cá nhân được phân công.
-2. Không push trực tiếp code lên `main` hoặc `develop`.
-3. Không tự ý sửa code thuộc phần việc của thành viên khác nếu chưa trao đổi.
-4. Mọi thay đổi muốn đưa vào `develop` phải thông qua Pull Request (PR).
-5. Team Leader chịu trách nhiệm kiểm tra và merge PR vào `develop`.
-6. Không tự ý sử dụng `git push --force`.
-
-## 3. Mô hình hoạt động của Git
-
-```text
-main
-  |
-  | (nhánh ổn định, chỉ cập nhật khi hoàn thiện)
-  |
-develop
-  |
-  |---------------------------------------
-  |          |          |        |        |
-feature/   feature/   feature/ feature/ feature/
-thang      dat        vu       thuy    quang-anh
-```
-
-Tất cả branch `feature/*` đều được tạo từ `develop`.
-
-Luồng làm việc:
-
-`develop` → `feature cá nhân` → `commit` → `push` → `Pull Request` → `develop`.
+1. [Tổng quan dự án](#1-tổng-quan-dự-án)
+2. [Kiến trúc hệ thống & Công nghệ](#2-kiến-trúc-hệ-thống--công-nghệ)
+3. [Các tính năng & Cải tiến trọng tâm (Sprint 1)](#3-các-tính-năng--cải-tiến-trọng-tâm-sprint-1)
+4. [Hướng dẫn cài đặt & Khởi chạy Local](#4-hướng-dẫn-cài-đặt--khởi-chạy-local)
+5. [Cấu trúc thư mục](#5-cấu-trúc-thư-mục)
+6. [Danh sách API chính](#6-danh-sách-api-chính)
+7. [Quy trình Git & Phân công Branch](#7-quy-trình-git--phân-công-branch)
+8. [Gợi ý tên Commit](#8-gợi-ý-tên-commit)
 
 ---
 
-# PHẦN II. TẢI SOURCE CODE TỪ GITHUB
+## 1. Tổng quan dự án
 
-## BƯỚC 1. Cài đặt Git
+**CMSBuilder** giải quyết bài toán biên tập và xuất bản nội dung web tĩnh truyền thống bằng mô hình khối linh hoạt (**Block-based Page Builder**). Người dùng có thể:
 
-Nếu máy tính chưa có Git:
-
-1. Truy cập: https://git-scm.com/downloads
-2. Tải Git phiên bản phù hợp với Windows.
-3. Cài đặt theo thiết lập mặc định.
-4. Mở PowerShell và kiểm tra:
-
-```powershell
-git --version
-```
-
-Nếu xuất hiện phiên bản Git, nghĩa là cài đặt thành công.
-
-## BƯỚC 2. Cấu hình thông tin Git
-
-Mỗi thành viên cần cấu hình tên và email cá nhân.
-
-Ví dụ:
-
-```powershell
-git config --global user.name "Do Huy Dat"
-git config --global user.email "email-cua-ban@example.com"
-```
-
-Thay tên và email bằng thông tin cá nhân tương ứng.
-
-Kiểm tra:
-
-```powershell
-git config --global --list
-```
-
-Lưu ý: Email nên là email đã đăng ký hoặc được xác minh trên GitHub nếu muốn các commit được liên kết với tài khoản GitHub.
-
-## BƯỚC 3. Clone repository về máy
-
-Mở PowerShell tại thư mục muốn lưu source code.
-
-Ví dụ:
-
-```powershell
-cd D:\Campuslink\MockProject
-```
-
-Chạy lệnh:
-
-```powershell
-git clone https://github.com/thangpthe/CMSBuilder.git
-```
-
-Sau khi clone thành công, máy tính sẽ có thư mục:
-
-```text
-MockProject/
-└── CMSBuilder/
-    ├── .git/
-    ├── .gitignore
-    ├── backend/
-    └── frontend/
-```
-
-Trong đó:
-
-- `.git`: Lưu thông tin quản lý phiên bản và kết nối repository.
-- `backend`: Source code FastAPI.
-- `frontend`: Source code React.
-
-**Lưu ý:** Không chạy `git init` trong thư mục vừa clone. Repository đã được khởi tạo sẵn.
-
-## BƯỚC 4. Kiểm tra các branch từ GitHub
-
-Di chuyển vào thư mục dự án:
-
-```powershell
-cd CMSBuilder
-```
-
-Cập nhật danh sách branch:
-
-```powershell
-git fetch origin
-```
-
-Xem toàn bộ branch:
-
-```powershell
-git branch -a
-```
-
-Kết quả dự kiến:
-
-```text
-  remotes/origin/develop
-  remotes/origin/main
-  remotes/origin/feature/dat
-  remotes/origin/feature/quang-anh
-  remotes/origin/feature/thang
-  remotes/origin/feature/thuy
-  remotes/origin/feature/vu
-```
+- Soạn thảo văn bản đa cấp độ (H1, H2, H3, đoạn văn, trích dẫn).
+- Tải lên hình ảnh trực tiếp hoặc liên kết URL ảnh ngoài.
+- Nhúng video trực quan từ YouTube hoặc đường dẫn trực tiếp.
+- Kéo thả, sắp xếp thứ tự khối tự do và xuất bản công khai tức thời.
+- Người xem công khai có thể đọc bài viết với trải nghiệm biên tập số hiện đại (tiến trình đọc, phóng to ảnh, khám phá các bài viết từ cộng đồng).
 
 ---
 
-# PHẦN III. CHUYỂN SANG BRANCH CÁ NHÂN
+## 2. Kiến trúc hệ thống & Công nghệ
 
-Mỗi thành viên phải checkout đúng branch được phân công.
+### Frontend
 
-## 1. Phùng Thế Thăng
+- **Framework**: React 18.2 + TypeScript + Vite 5.4.
+- **Routing**: React Router DOM v6 (kèm cờ tương thích `v7_startTransition` và `v7_relativeSplatPath`).
+- **Icons**: `lucide-react` (đồng bộ toàn bộ hệ thống quản trị, builder và trang 404) & `react-icons/fi` (trang bài viết công khai).
+- **Styling**: Pure CSS Variables Design System (`theme.css`, `styles.css`) tuân thủ chuẩn WCAG AA/AAA, hỗ trợ co giãn responsive 360px – 1920px.
 
-```powershell
-git switch --track origin/feature/thang
-```
+### Backend
 
-## 2. Đỗ Huy Đạt
-
-```powershell
-git switch --track origin/feature/dat
-```
-
-## 3. Nguyễn Nguyên Vũ
-
-```powershell
-git switch --track origin/feature/vu
-```
-
-## 4. Tạ Thị Thủy
-
-```powershell
-git switch --track origin/feature/thuy
-```
-
-## 5. Nguyễn Quang Anh
-
-```powershell
-git switch --track origin/feature/quang-anh
-```
-
-Các lệnh trên tạo branch local và thiết lập theo dõi branch tương ứng trên GitHub.
-
-**Lưu ý:** Mỗi thành viên chỉ chạy lệnh dành cho branch của mình.
-
-Kiểm tra branch hiện tại:
-
-```powershell
-git branch
-```
-
-Ví dụ đối với Đỗ Huy Đạt:
-
-```text
-  develop
-* feature/dat
-  main
-```
-
-Dấu `*` cho biết branch hiện tại.
-
-Nếu branch local đã tồn tại từ trước, dùng:
-
-```powershell
-git switch feature/dat
-```
-
-Thay `feature/dat` bằng branch của thành viên tương ứng.
+- **Framework**: Python 3.12 + FastAPI + Uvicorn.
+- **ORM / Database**: SQLAlchemy 2.0 + PostgreSQL (kết nối qua driver `psycopg` nhắm tới Neon Cloud / PostgreSQL Local).
+- **Bảo mật & Xác thực**: OAuth2 Password Flow + JWT Bearer Token + Passlib (bcrypt).
+- **CORS**: Cấu hình mở rộng hỗ trợ toàn bộ các origin localhost và 127.0.0.1 động.
 
 ---
 
-# PHẦN IV. CÀI ĐẶT MÔI TRƯỜNG CHẠY DỰ ÁN
+## 3. Các tính năng & Cải tiến trọng tâm (Sprint 1)
 
-Repository có cả Frontend và Backend. Thành viên cần cài đặt môi trường theo phần việc của mình.
+### 🔹 Tác vụ cốt lõi Page Builder
 
-## A. Cài đặt Backend
+- **TASK PB-01 (Sửa lỗi lưu trang khi Video Block rỗng)**:
+  - Cho phép lưu bản nháp ngay cả khi Video Block chưa nhập URL.
+  - Tự động bỏ qua Video Block rỗng khi gửi lên Backend, không làm mất nội dung các khối khác.
+  - Bổ sung validation URL YouTube chính xác.
+- **TASK PB-02 (Loại bỏ ảnh placeholder 1x1 rác)**:
+  - Xóa bỏ cơ chế tự động tạo và upload file ảnh PNG 1x1 giả lập.
+  - Chỉ tạo bản ghi Media khi người dùng thực sự tải file ảnh lên.
+  - Hỗ trợ lưu trữ và hiển thị URL ảnh bên ngoài mà không làm rác Database.
+- **TASK PB-03 (Đồng bộ khối nguyên tử - Atomic Block Sync)**:
+  - Xây dựng cơ chế đồng bộ danh sách khối thông qua transaction duy nhất: thêm mới, cập nhật và xóa khối không còn dùng.
+  - Cập nhật ngay ID thực từ server vào Frontend, ngăn chặn hoàn toàn hiện tượng nhân bản khối trùng lặp khi người dùng bấm Lưu nhiều lần.
 
-### Bước 1. Cài Python 3.12
+### 🔹 Xác thực, Phân quyền & Profile
 
-Kiểm tra:
+- Phân luồng điều hướng sau đăng nhập theo đúng vai trò người dùng:
+  - `system_admin`: Tự động điều hướng về Bảng điều khiển (`/dashboard`).
+  - `page_admin`: Điều hướng về danh sách quản lý trang (`/pages`).
+- Sửa lỗi `401 Unauthorized` khi Đăng xuất: Token được truyền linh hoạt và backend xử lý token hết hạn an toàn.
+- **Bảo mật thông tin hiển thị**: Loại bỏ việc in công khai role của user trên Header, Sidebar, Topbar và trang 404; chỉ hiển thị Username và Avatar viết tắt.
 
-```powershell
-py -3.12 --version
-```
+### 🔹 Trực quan hóa & Trải nghiệm xem trang công khai (Public Page)
 
-Nếu chưa có Python 3.12, có thể cài bằng:
+- Endpoint công khai `GET /api/public/pages` phục vụ dữ liệu tất cả các trang đã xuất bản từ **toàn bộ người dùng** trong hệ thống (Cross-user feed).
+- Tra cứu trang không phân biệt chữ hoa/chữ thường theo `slug` hoặc ID.
+- **UI/UX ProMax**:
+  - Thanh tiến trình đọc (Reading Progress Bar) gradient ở đỉnh màn hình.
+  - Thanh công cụ đọc nhanh nổi: Thích bài viết, Lưu trữ, Tùy biến cỡ chữ (A/A+/A++), Nút cuộn lên đầu trang.
+  - Lightbox phóng to ảnh toàn màn hình với nền kính mờ khi nhấp vào hình ảnh.
+  - Thẻ tác giả xác thực hiển thị tên tác giả thực tế từ cơ sở dữ liệu.
+  - Ngăn trượt (Drawer) và Lưới bài viết cộng đồng chuyển trang mượt mà không reload (`pushState`).
 
-```powershell
-winget install -e --id Python.Python.3.12
-```
+### 🔹 Trang 404 & Bản nháp tối giản (PublicNotFoundView)
 
-Sau khi cài đặt, mở lại PowerShell và kiểm tra.
-
-### Bước 2. Di chuyển vào Backend
-
-```powershell
-cd backend
-```
-
-### Bước 3. Tạo môi trường ảo
-
-```powershell
-py -3.12 -m venv .venv
-```
-
-### Bước 4. Kích hoạt môi trường ảo
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Nếu bị lỗi Execution Policy:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
-
-Sau đó kích hoạt lại:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Khi thành công, đầu dòng PowerShell sẽ xuất hiện `(.venv)`.
-
-### Bước 5. Cài đặt thư viện
-
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-### Bước 6. Tạo file cấu hình môi trường
-
-Nếu dự án có `.env.example`:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Mở file `.env` và cấu hình các giá trị theo hướng dẫn của nhóm Backend.
-
-Không commit hoặc push file `.env` lên GitHub.
-
-### Bước 7. Chạy Backend
-
-```powershell
-python -m uvicorn app.main:app --reload
-```
-
-Kiểm tra:
-
-- API: http://127.0.0.1:8000
-- Swagger UI: http://127.0.0.1:8000/docs
-
-Để dừng server: nhấn `Ctrl + C`.
-
-## B. Cài đặt Frontend
-
-### Bước 1. Cài Node.js 22
-
-Kiểm tra:
-
-```powershell
-node -v
-npm -v
-```
-
-Yêu cầu Node.js 22 theo cấu hình dự án.
-
-### Bước 2. Mở cửa sổ PowerShell mới
-
-Di chuyển vào thư mục Frontend:
-
-```powershell
-cd D:\Campuslink\MockProject\CMSBuilder\frontend
-```
-
-### Bước 3. Cài đặt thư viện
-
-```powershell
-npm ci
-```
-
-Nên sử dụng `npm ci` khi repository có `package-lock.json` để cài dependency theo lockfile.
-
-### Bước 4. Tạo file cấu hình môi trường
-
-Nếu có `.env.example`:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Cấu hình địa chỉ Backend theo hướng dẫn của nhóm.
-
-### Bước 5. Chạy Frontend
-
-```powershell
-npm run dev
-```
-
-Mở địa chỉ Vite hiển thị trong terminal, thông thường là:
-
-http://localhost:5173
-
-Để dừng server: nhấn `Ctrl + C`.
+- Thiết kế tối giản, loại bỏ các chi tiết thừa thãi và trùng lặp.
+- Đồng bộ 100% icon `lucide-react`, thanh header `.global-header`, logo `/logo.svg` và font chữ `Inter` với toàn hệ thống.
+- **Nút "Quay lại trang trước"**: Sử dụng `navigate(-1)` của React Router, **giữ nguyên 100% trạng thái đăng nhập, token và context** của user mà không bị tải lại trang.
 
 ---
 
-# PHẦN V. QUY TRÌNH LÀM VIỆC HẰNG NGÀY
+## 4. Hướng dẫn cài đặt & Khởi chạy Local
 
-Đây là phần quan trọng nhất. Thành viên phải tuân thủ quy trình này mỗi ngày để hạn chế xung đột code.
+### Yêu cầu tiên quyết
 
-## BƯỚC 1. Kiểm tra branch hiện tại
+- **Node.js**: >= 18.x
+- **Python**: 3.12.x
+- **Git**
 
-```powershell
-git branch
-```
+---
 
-Đảm bảo đang ở branch cá nhân.
+### Bước 1. Khởi chạy Backend
 
-Ví dụ:
+1. Mở terminal tại thư mục `backend`:
 
-```text
-* feature/dat
-  develop
-  main
-```
+   ```bash
+   cd backend
+   ```
 
-Nếu chưa đúng:
+2. Tạo và kích hoạt môi trường ảo Python:
+   - **Windows (PowerShell)**:
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - **Linux / macOS**:
+     ```bash
+     python3.12 -m venv .venv
+     source .venv/bin/activate
+     ```
 
-```powershell
-git switch feature/dat
-```
+3. Cài đặt các thư viện phụ thuộc:
 
-## BƯỚC 2. Cập nhật dữ liệu từ GitHub
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```powershell
-git fetch origin
-```
+4. Cấu hình biến môi trường:
+   Sao chép `.env.example` thành `.env` và cấu hình chuỗi kết nối PostgreSQL:
 
-Lệnh này cập nhật thông tin các branch trên GitHub về máy tính, không tự động thay đổi source code đang làm.
+   ```ini
+   DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/cmsbuilder
+   SECRET_KEY=your-super-secret-jwt-key
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   ```
 
-## BƯỚC 3. Đồng bộ code mới nhất từ develop
+5. Khởi động server FastAPI:
 
-Khi Team Leader đã merge code mới vào `develop`, các thành viên cần cập nhật về branch cá nhân.
+   ```bash
+   uvicorn app.main:app --reload --port 8000
+   ```
 
-Đang đứng ở branch cá nhân, chạy:
+   - Swagger API Docs: `http://127.0.0.1:8000/docs`
+   - Health check: `http://127.0.0.1:8000/health`
 
-```powershell
-git merge origin/develop
-```
+---
 
-Ví dụ Đỗ Huy Đạt:
+### Bước 2. Khởi chạy Frontend
 
-```powershell
-git switch feature/dat
-git fetch origin
-git merge origin/develop
-```
+1. Mở terminal tại thư mục `frontend`:
 
-Nếu Git thông báo `Already up to date` thì branch cá nhân đã có đầy đủ thay đổi mới nhất từ `develop`.
+   ```bash
+   cd frontend
+   ```
 
-Nếu xuất hiện conflict, không xóa hoặc ghi đè code một cách tùy tiện. Thành viên cần xử lý xung đột, kiểm tra lại chức năng và commit kết quả.
+2. Cài đặt dependencies:
 
-## BƯỚC 4. Tiến hành lập trình
+   ```bash
+   npm install
+   ```
 
-Thành viên chỉ chỉnh sửa phần việc được phân công.
+3. Cấu hình biến môi trường:
+   Tạo file `.env` (hoặc `.env.local`):
 
-Ví dụ:
+   ```ini
+   VITE_API_URL=http://127.0.0.1:8000
+   ```
+
+4. Khởi chạy dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Ứng dụng sẽ khả dụng tại `http://localhost:5173`.
+
+5. Kiểm tra build sản phẩm:
+   ```bash
+   npm run build
+   ```
+
+---
+
+## 5. Cấu trúc thư mục
 
 ```text
 CMSBuilder/
 ├── backend/
 │   ├── app/
-│   └── requirements.txt
-│
-└── frontend/
-    ├── src/
-    └── package.json
-```
-
-Nếu được giao Backend thì ưu tiên chỉnh sửa trong `backend/`.
-
-Nếu được giao Frontend thì ưu tiên chỉnh sửa trong `frontend/`.
-
-Không tự ý sửa các file cấu hình chung hoặc phần code của người khác nếu chưa thống nhất với Team Leader.
-
-## BƯỚC 5. Kiểm tra các file đã thay đổi
-
-```powershell
-git status
-```
-
-Kiểm tra nội dung thay đổi:
-
-```powershell
-git diff
-```
-
-Nếu có file không được phép đưa lên GitHub như `.env`, `.venv`, `node_modules`, database cá nhân, cần kiểm tra và loại bỏ khỏi vùng stage trước khi commit.
-
-## BƯỚC 6. Đưa code vào vùng chuẩn bị commit
-
-Khuyến nghị chỉ stage phần việc của mình.
-
-Ví dụ Backend:
-
-```powershell
-git add backend/
-```
-
-Ví dụ Frontend:
-
-```powershell
-git add frontend/
-```
-
-Nếu thay đổi nhiều file dùng chung và đã kiểm tra toàn bộ:
-
-```powershell
-git add -A
-```
-
-Kiểm tra lại:
-
-```powershell
-git status
-```
-
-## BƯỚC 7. Commit code
-
-Sử dụng thông điệp commit rõ ràng, mô tả đúng nội dung công việc.
-
-Ví dụ:
-
-```powershell
-git commit -m "feat: implement page management API"
-```
-
-Một số quy ước commit:
-
-| Prefix | Ý nghĩa |
-|---|---|
-| `feat:` | Thêm chức năng |
-| `fix:` | Sửa lỗi |
-| `docs:` | Cập nhật tài liệu |
-| `style:` | Điều chỉnh giao diện/định dạng |
-| `refactor:` | Tái cấu trúc code |
-| `test:` | Bổ sung hoặc sửa kiểm thử |
-| `chore:` | Công việc cấu hình, bảo trì |
-
-Ví dụ:
-
-```powershell
-git commit -m "feat: add text block component"
-git commit -m "fix: correct page update API"
-git commit -m "docs: update backend setup guide"
-```
-
-## BƯỚC 8. Push code lên branch cá nhân
-
-Ví dụ đối với Đỗ Huy Đạt:
-
-```powershell
-git push origin feature/dat
-```
-
-Các thành viên khác sử dụng branch tương ứng:
-
-```powershell
-git push origin feature/thang
-git push origin feature/vu
-git push origin feature/thuy
-git push origin feature/quang-anh
-```
-
-Không push code lên `develop` hoặc `main`.
-
----
-
-# PHẦN VI. TẠO PULL REQUEST ĐỂ MERGE CODE VÀO DEVELOP
-
-Sau khi hoàn thành một chức năng hoặc một nhóm công việc, thành viên tạo Pull Request.
-
-## BƯỚC 1. Push code lên branch cá nhân
-
-Ví dụ:
-
-```powershell
-git push origin feature/dat
-```
-
-## BƯỚC 2. Mở GitHub
-
-Truy cập:
-
-https://github.com/thangpthe/CMSBuilder
-
-Chọn mục **Pull requests**.
-
-Nhấn **New pull request**.
-
-## BƯỚC 3. Chọn branch
-
-Thiết lập:
-
-- Base: `develop`
-- Compare: `feature/dat`
-
-Ví dụ:
-
-```text
-base: develop
-compare: feature/dat
-```
-
-Đối với các thành viên khác, chọn branch cá nhân tương ứng.
-
-## BƯỚC 4. Viết nội dung Pull Request
-
-Ví dụ:
-
-**Title:**
-
-```text
-feat: implement page management
-```
-
-**Description:**
-
-```text
-## Nội dung thực hiện
-- Xây dựng chức năng quản lý trang.
-- Bổ sung API tạo trang.
-- Bổ sung API cập nhật trang.
-- Bổ sung API xóa trang.
-
-## Kiểm thử
-- Đã kiểm tra API bằng Postman.
-- Đã kiểm tra dữ liệu trả về.
-- Không phát hiện lỗi trong phạm vi đã kiểm thử.
-
-## Ghi chú
-- Các nội dung cần hỗ trợ hoặc vấn đề còn tồn tại.
-```
-
-## BƯỚC 5. Chờ Team Leader kiểm tra
-
-Team Leader sẽ:
-
-1. Kiểm tra nội dung code.
-2. Kiểm tra chức năng.
-3. Kiểm tra các thay đổi có ảnh hưởng phần khác không.
-4. Yêu cầu chỉnh sửa nếu cần.
-5. Merge Pull Request vào `develop` khi đạt yêu cầu.
-
-Thành viên không tự ý merge PR nếu chưa được phân quyền hoặc chưa có sự đồng ý của Team Leader.
-
----
-
-# PHẦN VII. ĐỒNG BỘ SAU KHI PULL REQUEST ĐƯỢC MERGE
-
-Sau khi PR của thành viên được merge vào `develop`, các thành viên khác cần cập nhật source mới.
-
-Ví dụ đối với Đỗ Huy Đạt:
-
-```powershell
-git switch feature/dat
-git fetch origin
-git merge origin/develop
-```
-
-Kiểm tra:
-
-```powershell
-git status
-```
-
-Nếu không có lỗi, thành viên tiếp tục công việc.
-
-**Lưu ý:** Chỉ merge `origin/develop` vào branch cá nhân. Không chuyển sang `main` để lấy code trong quy trình phát triển thông thường.
-
----
-
-# PHẦN VIII. XỬ LÝ CÁC LỖI GIT THƯỜNG GẶP
-
-## 1. Lỗi chưa cấu hình user.name hoặc user.email
-
-Chạy:
-
-```powershell
-git config --global user.name "Ten Cua Ban"
-git config --global user.email "email-cua-ban@example.com"
-```
-
-Sau đó commit lại.
-
-## 2. Lỗi branch chưa tồn tại ở local
-
-Chạy:
-
-```powershell
-git fetch origin
-git branch -a
-```
-
-Nếu branch có trên remote:
-
-```powershell
-git switch --track origin/feature/dat
-```
-
-Thay bằng branch của thành viên.
-
-## 3. Lỗi push bị từ chối do remote có commit mới
-
-Không dùng `git push --force`.
-
-Thực hiện:
-
-```powershell
-git fetch origin
-git merge origin/feature/dat
-```
-
-Giải quyết conflict nếu có, sau đó:
-
-```powershell
-git push origin feature/dat
-```
-
-## 4. Lỗi merge conflict
-
-Khi Git thông báo conflict:
-
-1. Mở file bị conflict trong VS Code.
-2. Xem các đoạn có dấu `<<<<<<<`, `=======`, `>>>>>>>`.
-3. Trao đổi với thành viên liên quan để thống nhất nội dung.
-4. Chỉnh sửa và xóa các dấu conflict.
-5. Kiểm tra lại code.
-
-Sau đó:
-
-```powershell
-git add .
-git commit -m "fix: resolve merge conflicts"
-```
-
-## 5. Đã sửa nhầm trên develop
-
-Nếu đã sửa code nhưng chưa commit, không nên tự ý xóa thay đổi.
-
-Thông báo Team Leader để được hướng dẫn chuyển phần thay đổi sang branch cá nhân an toàn.
-
----
-
-# PHẦN IX. QUY TẮC BẮT BUỘC CỦA NHÓM
-
-| STT | Quy định |
-|---|---|
-| 1 | Mỗi thành viên làm việc trên branch cá nhân. |
-| 2 | Trước khi lập trình phải kiểm tra branch hiện tại. |
-| 3 | Thường xuyên `git fetch origin` và đồng bộ `origin/develop`. |
-| 4 | Commit theo từng chức năng hoặc nhóm công việc nhỏ. |
-| 5 | Commit message phải rõ ràng. |
-| 6 | Chỉ push lên branch cá nhân. |
-| 7 | Không push trực tiếp lên `main` và `develop`. |
-| 8 | Mọi thay đổi vào `develop` phải thông qua Pull Request. |
-| 9 | Không commit file `.env`, `.venv`, `node_modules` và dữ liệu cá nhân. |
-| 10 | Không sử dụng `git push --force` khi chưa được Team Leader cho phép. |
-
-## Những lệnh cần nhớ hằng ngày
-
-```powershell
-# 1. Kiểm tra branch
-git branch
-
-# 2. Lấy thông tin mới nhất từ GitHub
-git fetch origin
-
-# 3. Đồng bộ develop vào branch cá nhân
-git merge origin/develop
-
-# 4. Kiểm tra thay đổi
-git status
-
-# 5. Stage code
-git add backend/
-# hoặc
-git add frontend/
-
-# 6. Commit
-git commit -m "feat: mô tả chức năng"
-
-# 7. Push lên branch cá nhân
-git push origin feature/ten-thanh-vien
+│   │   ├── core/           # Cấu hình config, security, auth token
+│   │   ├── db/             # Kết nối SQLAlchemy engine & session
+│   │   ├── models/         # Khai báo models (User, Page, ContentBlock, Media)
+│   │   ├── routers/        # API endpoints (auth, pages, blocks, media, public_pages)
+│   │   ├── schemas/        # Pydantic schemas validation
+│   │   ├── services/       # Xử lý nghiệp vụ logic (page_service, block_sync...)
+│   │   └── main.py         # Entry point FastAPI & cấu hình CORS
+│   ├── uploads/            # Thư mục lưu trữ media ảnh tải lên
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/
+│   ├── public/             # Tài nguyên tĩnh, favicon, logo.svg
+│   ├── src/
+│   │   ├── components/     # Layout, Sidebar, Topbar, Page Builder Block Editors
+│   │   ├── contexts/       # AuthContext quản lý phiên đăng nhập
+│   │   ├── hooks/          # useAuth, custom hooks
+│   │   ├── pages/          # LoginPage, PageBuilderPage, PageListPage, DashboardPage, PublicPage
+│   │   ├── routes/         # AppRoutes, ProtectedRoute
+│   │   ├── services/       # api client axios, authService, blockService, pageApi
+│   │   ├── styles/         # theme.css, admin styles
+│   │   └── main.tsx        # React root & BrowserRouter tương thích v7
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+└── README.md
 ```
 
 ---
 
-# PHẦN X. CHECKLIST TRƯỚC KHI KẾT THÚC MỖI NGÀY
+## 6. Danh sách API chính
 
-- [ ] Đang làm việc đúng branch cá nhân.
-- [ ] Đã cập nhật code mới nhất từ `develop` khi cần.
-- [ ] Đã kiểm tra và chạy thử phần code vừa thực hiện.
-- [ ] Đã kiểm tra `git status`.
-- [ ] Không đưa file cấu hình bí mật lên GitHub.
-- [ ] Đã commit code với nội dung rõ ràng.
-- [ ] Đã push code lên branch cá nhân.
-- [ ] Đã cập nhật tiến độ công việc cho Team Leader.
+| Phương thức | Đường dẫn                  | Quyền        | Mô tả                                                       |
+| ----------- | -------------------------- | ------------ | ----------------------------------------------------------- |
+| `POST`      | `/api/auth/login`          | Công khai    | Đăng nhập nhận JWT Token & thông tin người dùng             |
+| `GET`       | `/api/auth/me`             | Bearer Token | Lấy thông tin user hiện tại đang đăng nhập                  |
+| `POST`      | `/api/auth/logout`         | Tùy chọn     | Đăng xuất an toàn khỏi phiên làm việc                       |
+| `GET`       | `/api/pages`               | Người dùng   | Lấy danh sách trang thuộc quyền sở hữu                      |
+| `POST`      | `/api/pages`               | Người dùng   | Khởi tạo trang mới                                          |
+| `PUT`       | `/api/pages/{id}`          | Người dùng   | Cập nhật thông tin trang (tiêu đề, slug, mô tả, trạng thái) |
+| `PUT`       | `/api/pages/{id}/blocks`   | Người dùng   | **Đồng bộ nguyên tử** danh sách Content Blocks              |
+| `POST`      | `/api/media/upload`        | Người dùng   | Tải lên tập tin hình ảnh thực tế                            |
+| `GET`       | `/api/public/pages`        | Công khai    | Lấy danh sách toàn bộ trang đã xuất bản trên hệ thống       |
+| `GET`       | `/api/public/pages/{slug}` | Công khai    | Xem nội dung chi tiết bài viết công khai theo slug/id       |
 
 ---
 
-**KẾT LUẬN**
+## 7. Quy trình Git & Phân công Branch
 
-Toàn bộ thành viên thống nhất sử dụng mô hình Git Branching của CMSBuilder:
+### Phân công nhánh làm việc
 
-- `main`: nhánh ổn định.
-- `develop`: nhánh tích hợp source code.
-- `feature/thang`: Phùng Thế Thăng.
-- `feature/dat`: Đỗ Huy Đạt.
-- `feature/vu`: Nguyễn Nguyên Vũ.
-- `feature/thuy`: Tạ Thị Thủy.
-- `feature/quang-anh`: Nguyễn Quang Anh.
+| Thành viên       | Vai trò     | Branch phân công |
+| ---------------- | ----------- | ---------------- |
+| Phùng Thế Thăng  | Team Leader | `feature/thang`  |
+| Đỗ Huy Đạt       | Thành viên  | `feature/dat`    |
+| Nguyễn Nguyên Vũ | Thành viên  | `feature/vu`     |
+| Tạ Thị Thủy      | Thành viên  | `feature/thuy`   |
 
-Mục tiêu là đảm bảo source code được quản lý tập trung, hạn chế ghi đè code, giảm xung đột khi làm việc nhóm và giúp Team Leader kiểm soát chất lượng trước khi tích hợp.
+### Quy tắc làm việc
+
+1. Toàn bộ tính năng phát triển trên nhánh `feature/<ten-thanh-vien>`.
+2. Không push trực tiếp lên nhánh `main` hoặc `develop`.
+3. Tích hợp code thông qua Pull Request (PR) gửi vào `develop`.
+4. Không commit các file nhạy cảm: `.env`, `.venv/`, `node_modules/`, `dist/`.
+
+---
+
+_© 2026 CMSBuilder Team. All rights reserved._

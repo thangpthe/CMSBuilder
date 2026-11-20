@@ -1,15 +1,15 @@
 import {
   Search,
   Bell,
-  BookOpen,
   Menu,
-  ChevronRight,
   Save,
   Eye,
   Send,
   SlidersHorizontal,
+  LogOut,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface TopbarProps {
   title: string;
@@ -32,6 +32,15 @@ export default function Topbar({
 }: TopbarProps) {
   const isPublished = status === 'published';
   const navigate = useNavigate();
+  const { user, logoutUser } = useAuth();
+
+  const username = user?.username || user?.name || 'User';
+  const avatarInitials = username.slice(0, 2).toUpperCase();
+
+  const handleLogout = () => {
+    logoutUser();
+    navigate('/login', { replace: true });
+  };
 
   const handleBack = () => {
     navigate('/pages');
@@ -69,13 +78,36 @@ export default function Topbar({
           <i />
         </button>
 
-        <div className="profile">
-          <div className="avatar"></div>
+        <div
+          className="profile"
+          title={`Đang đăng nhập: ${username}`}
+        >
+          <div className="avatar">{avatarInitials}</div>
           <div>
-            <strong>User</strong>
-            <span>User</span>
+            <strong>{username}</strong>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="icon-btn logout-btn"
+          onClick={handleLogout}
+          title="Đăng xuất khỏi hệ thống"
+          aria-label="Đăng xuất"
+          style={{
+            color: 'var(--status-danger-text, #e11d48)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            marginLeft: 4,
+          }}
+        >
+          <LogOut size={16} />
+          <span>Đăng xuất</span>
+        </button>
       </header>
 
       <header className="editor-header">

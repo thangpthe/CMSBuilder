@@ -5,6 +5,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     Request,
     status
 )
@@ -15,11 +16,14 @@ from app.db.session import get_db
 
 from app.schemas.page import (
     PageBlockResponse,
-    PublicPageResponse
+    PublicPageResponse,
+    PublicPageSummaryResponse,
+    PublicPageListResponse,
 )
 
 from app.services.page_service import (
-    get_published_page_by_slug
+    get_published_page_by_slug,
+    get_all_published_pages,
 )
 
 
@@ -42,6 +46,45 @@ def build_public_media_url(
         str(request.base_url).rstrip("/")
         + "/"
         + media.file_path
+    )
+
+
+# API lay danh sach tat ca cac Page da Publish tu toan bo nguoi dung
+@router.get(
+    "",
+    response_model=PublicPageListResponse,
+    summary="Lay danh sach tat ca cac trang da xuat ban cua toan bo nguoi dung"
+)
+def list_public_pages_api(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    pages, total = get_all_published_pages(
+        db=db,
+        skip=skip,
+        limit=limit
+    )
+
+    items = [
+        PublicPageSummaryResponse(
+            id=page.id,
+            title=page.title,
+            description=page.description,
+            slug=page.slug or f"page-{page.id}",
+            status=page.status,
+            published_at=page.published_at,
+            author_name=page.owner.username if page.owner else "Tác giả",
+            blocks_count=len(page.content_blocks) if page.content_blocks else 0
+        )
+        for page in pages
+    ]
+
+    return PublicPageListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit
     )
 
 
@@ -117,8 +160,9 @@ def get_public_page_api(
         id=page.id,
         title=page.title,
         description=page.description,
-        slug=page.slug,
+        slug=page.slug or slug,
         status=page.status,
         published_at=page.published_at,
+        author_name=page.owner.username if page.owner else "CMSBuilder",
         blocks=blocks_response
     )

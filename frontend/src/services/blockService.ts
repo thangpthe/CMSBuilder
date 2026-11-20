@@ -40,6 +40,21 @@ export interface BlockDeleteResponse {
   message: string;
 }
 
+// PB-03: Bulk sync types
+export interface BulkSyncBlockItem {
+  id?: number | null;
+  type: PageBlockType;
+  content?: string | null;
+  media_id?: number | null;
+  order_index: number;
+}
+
+export interface BulkSyncBlocksResponse {
+  success: boolean;
+  message: string;
+  blocks: PageBlockDto[];
+}
+
 export const blockService = {
   async getBlocks(pageId: number | string): Promise<PageBlockDto[]> {
     const response = await apiClient.get<PageBlockDto[]>(`/api/pages/${pageId}/blocks`);
@@ -80,6 +95,18 @@ export const blockService = {
     const response = await apiClient.put<BlockReorderResponse>(
       `/api/pages/${pageId}/blocks/reorder`,
       { block_ids: blockIds },
+    );
+    return response.data;
+  },
+
+ 
+  async bulkSyncBlocks(
+    pageId: number | string,
+    blocks: BulkSyncBlockItem[],
+  ): Promise<BulkSyncBlocksResponse> {
+    const response = await apiClient.put<BulkSyncBlocksResponse>(
+      `/api/pages/${pageId}/blocks/sync`,
+      { blocks },
     );
     return response.data;
   },

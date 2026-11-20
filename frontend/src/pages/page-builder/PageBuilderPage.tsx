@@ -17,7 +17,6 @@ import SettingsPanel from '../../components/page-builder/SettingsPanel';
 import { initialBlocks } from '../../components/page-builder/data/initialBlocks';
 import pageService from '../../services/pageService';
 import blockService, { type PageBlockDto } from '../../services/blockService';
-import mediaService from '../../services/mediaService';
 import type {
   Block,
   BlockType,
@@ -123,17 +122,7 @@ function mapBackendBlockToUi(dto: PageBlockDto): Block {
   };
 }
 
-function createPlaceholderPngFile(): File {
-  const base64 =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  const blob = new Blob([bytes], { type: 'image/png' });
-  return new File([blob], 'placeholder-image.png', { type: 'image/png' });
-}
+// PB-02: Removed createPlaceholderPngFile() — no longer auto-upload placeholder images.
 
 function extractApiErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === 'object' && 'response' in err) {
@@ -186,12 +175,6 @@ export default function PageBuilderPage() {
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [preview, setPreview] = useState(false);
   const [previewSize, setPreviewSize] = useState<PreviewSize>('desktop');
-
-  // Khối hiện đang được chọn
-  const selectedBlock = useMemo(
-    () => blocks.find((block) => block.id === selectedId),
-    [blocks, selectedId]
-  );
 
   const notify = (message: string, type: 'success' | 'error' = 'success'): void => {
     setToastType(type);
@@ -430,93 +413,146 @@ export default function PageBuilderPage() {
       savedSlug = (updatedPage.slug || cleanSlug).replace(/^\/+/, '');
     }
 
-    // Xóa các block đã bị xóa khỏi UI
+    // PB-01 + PB-02: Filter out unconfigured blocks before syncing.
+    // - Video Block with empty URL → skip (don't send to backend)
+    // - Image Block without mediaId and without external src → skip
+    // This ensures no empty/placeholder data is sent to the backend.
+    const blocksToSync = blocks.filter((b) => {
+      if (b.type === 'video' && !b.url.trim()) return false;
+      if (b.type === 'image' && !b.mediaId && !b.src.trim()) return false;
+      return true;
+    });
+
+    // PB-03: Xóa các block đã bị xóa khỏi UI hoặc bị lọc bỏ.
+    // Use idempotent deletion: ignore 404 errors (block may already be deleted).
     const currentBackendIds = new Set(
-      blocks
+      blocksToSync
         .map((b) => b.backendId)
         .filter((id): id is number => typeof id === 'number')
     );
 
     for (const oldId of initialBackendBlockIdsRef.current) {
       if (!currentBackendIds.has(oldId)) {
-        await blockService.deleteBlock(targetPageId, oldId);
+        try {
+          await blockService.deleteBlock(targetPageId, oldId);
+        } catch (deleteErr: unknown) {
+          // PB-03: Idempotent deletion — ignore 404 (already deleted)
+          const status = (deleteErr as { response?: { status?: number } })?.response?.status;
+          if (status !== 404) {
+            throw deleteErr;
+          }
+        }
       }
     }
 
-    // Tạo mới hoặc cập nhật từng block
-    const syncedBlocks: Block[] = [];
+    // PB-03: Tạo mới hoặc cập nhật từng block.
+    // Key improvement: Update backendId in state IMMEDIATELY after each successful operation.
+    // This prevents duplicate creation on retry if a later block fails.
     const syncedBackendIds: number[] = [];
+    const failedBlockLabels: string[] = [];
+    let hasPartialFailure = false;
 
-    for (let i = 0; i < blocks.length; i += 1) {
-      const block = blocks[i];
+    for (let i = 0; i < blocksToSync.length; i += 1) {
+      const block = blocksToSync[i];
 
-      if (block.type === 'text') {
-        const serializedContent = JSON.stringify({
-          content: block.content,
-          body: block.body,
-          level: block.level,
-        });
+      try {
+        if (block.type === 'text') {
+          const serializedContent = JSON.stringify({
+            content: block.content,
+            body: block.body,
+            level: block.level,
+          });
 
-        const dto = block.backendId
-          ? await blockService.updateBlock(targetPageId, block.backendId, {
-              content: serializedContent,
-              order_index: i,
-            })
-          : await blockService.createBlock(targetPageId, {
-              type: 'text',
-              content: serializedContent,
+          const dto = block.backendId
+            ? await blockService.updateBlock(targetPageId, block.backendId, {
+                content: serializedContent,
+                order_index: i,
+              })
+            : await blockService.createBlock(targetPageId, {
+                type: 'text',
+                content: serializedContent,
+                order_index: i,
+              });
+
+          syncedBackendIds.push(dto.id);
+
+          // PB-03: Immediately persist backendId so retry won't duplicate
+          if (!block.backendId || block.backendId !== dto.id) {
+            const dtoId = dto.id;
+            setBlocks((prev) =>
+              prev.map((b) => (b.id === block.id ? { ...b, backendId: dtoId } as Block : b))
+            );
+          }
+        } else if (block.type === 'image') {
+          // PB-02: Only sync images that have a real mediaId (user-uploaded).
+          // Images with only external src URL are stored as content.
+          const mediaIdToUse = block.mediaId ?? undefined;
+          const imageContent = block.caption || block.alt || null;
+
+          if (mediaIdToUse) {
+            const dto = block.backendId
+              ? await blockService.updateBlock(targetPageId, block.backendId, {
+                  content: imageContent,
+                  media_id: mediaIdToUse,
+                  order_index: i,
+                })
+              : await blockService.createBlock(targetPageId, {
+                  type: 'image',
+                  content: imageContent,
+                  media_id: mediaIdToUse,
+                  order_index: i,
+                });
+
+            syncedBackendIds.push(dto.id);
+
+            if (!block.backendId || block.backendId !== dto.id) {
+              const dtoId = dto.id;
+              setBlocks((prev) =>
+                prev.map((b) => (b.id === block.id ? { ...b, backendId: dtoId } as Block : b))
+              );
+            }
+          } else if (block.backendId) {
+            // Block exists on backend but user removed the image — update content only
+            const dto = await blockService.updateBlock(targetPageId, block.backendId, {
+              content: imageContent,
               order_index: i,
             });
+            syncedBackendIds.push(dto.id);
+          }
+          // If no mediaId and no backendId, skip entirely (unconfigured image block
+          // that slipped through — shouldn't happen after filter above)
+        } else {
+          // Video block — only reaches here if URL is non-empty (filtered above)
+          const dto = block.backendId
+            ? await blockService.updateBlock(targetPageId, block.backendId, {
+                content: block.url,
+                order_index: i,
+              })
+            : await blockService.createBlock(targetPageId, {
+                type: 'video',
+                content: block.url,
+                order_index: i,
+              });
 
-        syncedBackendIds.push(dto.id);
-        syncedBlocks.push({ ...block, backendId: dto.id });
-      } else if (block.type === 'image') {
-        let mediaIdToUse = block.mediaId;
-        let nextSrc = block.src;
+          syncedBackendIds.push(dto.id);
 
-        if (!mediaIdToUse) {
-          const uploaded = await mediaService.uploadImage(createPlaceholderPngFile());
-          mediaIdToUse = uploaded.id;
-          if (!nextSrc) {
-            nextSrc = uploaded.url;
+          if (!block.backendId || block.backendId !== dto.id) {
+            const dtoId = dto.id;
+            setBlocks((prev) =>
+              prev.map((b) => (b.id === block.id ? { ...b, backendId: dtoId } as Block : b))
+            );
           }
         }
+      } catch (blockErr: unknown) {
+        // PB-03: Record failure but continue syncing remaining blocks
+        hasPartialFailure = true;
+        failedBlockLabels.push(`${block.label} (#${i + 1})`);
+        console.error(`[syncToBackend] Failed to sync block "${block.label}" (index ${i}):`, blockErr);
 
-        const imageContent = block.caption || block.alt || null;
-        const dto = block.backendId
-          ? await blockService.updateBlock(targetPageId, block.backendId, {
-              content: imageContent,
-              media_id: mediaIdToUse,
-              order_index: i,
-            })
-          : await blockService.createBlock(targetPageId, {
-              type: 'image',
-              content: imageContent,
-              media_id: mediaIdToUse,
-              order_index: i,
-            });
-
-        syncedBackendIds.push(dto.id);
-        syncedBlocks.push({
-          ...block,
-          backendId: dto.id,
-          mediaId: mediaIdToUse,
-          src: nextSrc,
-        });
-      } else {
-        const dto = block.backendId
-          ? await blockService.updateBlock(targetPageId, block.backendId, {
-              content: block.url,
-              order_index: i,
-            })
-          : await blockService.createBlock(targetPageId, {
-              type: 'video',
-              content: block.url,
-              order_index: i,
-            });
-
-        syncedBackendIds.push(dto.id);
-        syncedBlocks.push({ ...block, backendId: dto.id });
+        // If this block already had a backendId, include it in ordering
+        if (block.backendId) {
+          syncedBackendIds.push(block.backendId);
+        }
       }
     }
 
@@ -525,14 +561,27 @@ export default function PageBuilderPage() {
     }
 
     initialBackendBlockIdsRef.current = syncedBackendIds;
-    setBlocks(syncedBlocks);
+
+    // PB-03: If there were partial failures, throw so caller shows appropriate message
+    if (hasPartialFailure) {
+      throw new Error(
+        `Một số khối nội dung không thể lưu: ${failedBlockLabels.join(', ')}. Các khối còn lại đã được lưu thành công. Vui lòng thử lại.`
+      );
+    }
 
     return { pageId: targetPageId, slug: savedSlug };
   }, [blocks, currentPageId, description, setSearchParams, slug, title]);
 
-  const validateBlocksBeforeSubmit = useCallback((): boolean => {
+  /**
+   * PB-01: Validate blocks before submit.
+   * - Video Blocks with empty URL are SKIPPED (they will be filtered out before sync).
+   * - Video Blocks with non-empty but INVALID URLs are rejected with clear error.
+   * - For publish: Image Blocks without media are rejected.
+   */
+  const validateBlocksBeforeSubmit = useCallback((mode: 'save' | 'publish' = 'save'): boolean => {
+    // Check video blocks: only reject if URL is non-empty but invalid
     const invalidVideo = blocks.find(
-      (b) => b.type === 'video' && (b.url.trim() === '' || !isValidVideoUrl(b.url))
+      (b) => b.type === 'video' && b.url.trim() !== '' && !isValidVideoUrl(b.url)
     );
     if (invalidVideo) {
       setSelectedId(invalidVideo.id);
@@ -540,14 +589,31 @@ export default function PageBuilderPage() {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      notify('Vui lòng nhập URL video hợp lệ trước khi lưu hoặc xuất bản.', 'error');
+      notify('URL video không hợp lệ. Vui lòng nhập link YouTube, Vimeo hoặc file video (.mp4, .webm, .ogg).', 'error');
       return false;
     }
+
+    // PB-02: On publish, reject unconfigured Image Blocks (no image selected)
+    if (mode === 'publish') {
+      const unconfiguredImage = blocks.find(
+        (b) => b.type === 'image' && !b.mediaId && !b.src.trim()
+      );
+      if (unconfiguredImage) {
+        setSelectedId(unconfiguredImage.id);
+        const el = document.querySelector(`[data-block-id="${unconfiguredImage.id}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        notify('Vui lòng chọn ảnh cho Image Block trước khi xuất bản, hoặc xóa Block này.', 'error');
+        return false;
+      }
+    }
+
     return true;
   }, [blocks]);
 
   const save = useCallback(async (): Promise<void> => {
-    if (!validateBlocksBeforeSubmit()) return;
+    if (!validateBlocksBeforeSubmit('save')) return;
 
     const timestamp = new Date().toLocaleTimeString('vi-VN', {
       hour: '2-digit',
@@ -577,7 +643,7 @@ export default function PageBuilderPage() {
   }, [blocks, description, draftStatus, slug, storageKey, syncToBackend, title, validateBlocksBeforeSubmit]);
 
   const publish = async (): Promise<void> => {
-    if (!validateBlocksBeforeSubmit()) return;
+    if (!validateBlocksBeforeSubmit('publish')) return;
 
     const timestamp = new Date().toLocaleTimeString('vi-VN', {
       hour: '2-digit',

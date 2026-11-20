@@ -310,3 +310,104 @@ def reorder_blocks(
     except Exception:
         db.rollback()
         raise
+
+
+
+def bulk_sync_blocks(
+    db: Session,
+    page_id: int,
+    owner_id: int,
+    block_items: list[dict],
+) -> list[ContentBlock]:
+    
+    page = _get_owned_page(db, page_id, owner_id)
+
+    # Fetch current blocks
+    existing_blocks = list(
+        db.scalars(
+            select(ContentBlock)
+            .options(selectinload(ContentBlock.media))
+            .where(ContentBlock.page_id == page.id)
+        ).all()
+    )
+    existing_map = {block.id: block for block in existing_blocks}
+
+    # Track which existing IDs are referenced in the input
+    referenced_ids: set[int] = set()
+    result_blocks: list[ContentBlock] = []
+
+    try:
+        for idx, item in enumerate(block_items):
+            block_id = item.get("id")
+            block_type = item.get("type", "text")
+            content = item.get("content")
+            media_id = item.get("media_id")
+            order_index = item.get("order_index", idx)
+
+            if block_id is not None and block_id in existing_map:
+                # Update existing block
+                referenced_ids.add(block_id)
+                block = existing_map[block_id]
+
+                if block_type == "video" and content:
+                    try:
+                        content = validate_video_url(content)
+                    except ValueError as err:
+                        raise InvalidBlockDataError(str(err))
+
+                if block_type == "image" and media_id is not None:
+                    _validate_owned_media(db, media_id, owner_id)
+
+                block.content = content
+                if media_id is not None:
+                    block.media_id = media_id
+                block.order_index = order_index
+                result_blocks.append(block)
+            else:
+                # Create new block
+                media: Media | None = None
+                stored_content: str | None = None
+                stored_media_id: int | None = None
+
+                if block_type == "image":
+                    if media_id is None:
+                        raise InvalidBlockDataError(
+                            "media_id la bat buoc doi voi Image Block."
+                        )
+                    media = _validate_owned_media(db, media_id, owner_id)
+                    stored_media_id = media.id
+                elif block_type == "video":
+                    try:
+                        stored_content = validate_video_url(content)
+                    except ValueError as err:
+                        raise InvalidBlockDataError(str(err))
+                elif block_type == "text":
+                    stored_content = content if content is not None else ""
+                else:
+                    raise InvalidBlockDataError("Loai block khong hop le.")
+
+                new_block = ContentBlock(
+                    page_id=page.id,
+                    type=block_type,
+                    content=stored_content,
+                    media_id=stored_media_id,
+                    order_index=order_index,
+                )
+                db.add(new_block)
+                db.flush()
+                db.refresh(new_block)
+                result_blocks.append(new_block)
+
+        # Delete blocks that are no longer referenced
+        for old_block in existing_blocks:
+            if old_block.id not in referenced_ids:
+                db.delete(old_block)
+
+        db.commit()
+
+        # Reload all blocks with media relationships
+        return get_page_blocks(db, page_id, owner_id)
+
+    except Exception:
+        db.rollback()
+        raise

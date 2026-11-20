@@ -1,41 +1,32 @@
 import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
-import type { ReactNode } from "react";
 import LoginPage from "../pages/auth/LoginPage";
 import PageBuilderPage from "../pages/page-builder/PageBuilderPage";
 import PageListPage from "../pages/pages-management/PageListPage";
 import PublicPage from "../pages/public/PublicPage";
-
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
-
-function DashboardPlaceholder() {
-  return (
-    <div style={{ padding: 32 }}>
-      <h1>CMSBuilder Dashboard</h1>
-      <p>
-        Đăng nhập thành công. Khu vực quản trị sẽ được phát triển ở bước tiếp theo.
-      </p>
-    </div>
-  );
-}
-
-function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const token = localStorage.getItem("access_token");
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-}
+import DashboardPage from "../pages/dashboard/DashboardPage";
+import ProtectedRoute from "./ProtectedRoute";
+import { useAuth } from "../hooks/useAuth";
+import { getDefaultRouteForRole } from "../services/authService";
 
 function RootRedirect() {
   const [searchParams] = useSearchParams();
+  const { isAuthenticated, user, isLoading } = useAuth();
+
   if (searchParams.get("view") === "public") {
     return <PublicPage />;
   }
-  return <Navigate to="/page-builder" replace />;
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Chuyen huong theo dung role cua user
+  const destination = getDefaultRouteForRole(user?.role);
+  return <Navigate to={destination} replace />;
 }
 
 function AppRoutes() {
@@ -62,12 +53,12 @@ function AppRoutes() {
         }
       />
 
-      {/* Dashboard */}
+      {/* Dashboard (Danh rieng cho system_admin) */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
-            <DashboardPlaceholder />
+          <ProtectedRoute allowedRoles={["system_admin"]}>
+            <DashboardPage />
           </ProtectedRoute>
         }
       />
@@ -118,7 +109,7 @@ function AppRoutes() {
       {/* Route không tồn tại */}
       <Route
         path="*"
-        element={<Navigate to="/page-builder" replace />}
+        element={<RootRedirect />}
       />
     </Routes>
   );

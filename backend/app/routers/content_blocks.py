@@ -24,9 +24,12 @@ from app.schemas.content_block import (
     BlockReorderRequest,
     BlockReorderResponse,
     BlockUpdateRequest,
+    BulkSyncBlocksRequest,
+    BulkSyncBlocksResponse,
 )
 
 from app.services.content_block_service import (
+    bulk_sync_blocks,
     create_block,
     delete_block,
     get_page_blocks,
@@ -193,6 +196,58 @@ def reorder_blocks_api(
     except (PageNotFoundError, BlockNotFoundError) as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+
+# PB-03: API dong bo toan bo Block trong mot transaction
+@router.put(
+    "/{page_id}/blocks/sync",
+    response_model=BulkSyncBlocksResponse
+)
+def bulk_sync_blocks_api(
+    page_id: int,
+    request: Request,
+    payload: BulkSyncBlocksRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    try:
+        block_items = [item.model_dump() for item in payload.blocks]
+        synced_blocks = bulk_sync_blocks(
+            db=db,
+            page_id=page_id,
+            owner_id=current_user.id,
+            block_items=block_items
+        )
+        return BulkSyncBlocksResponse(
+            success=True,
+            message="Đồng bộ khối nội dung thành công",
+            blocks=[serialize_block(request, block) for block in synced_blocks]
+        )
+
+    except PageNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+    except (MediaNotFoundError, BlockNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+    except MediaFileMissingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error)
+        )
+
+    except InvalidBlockDataError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error)
         )
 

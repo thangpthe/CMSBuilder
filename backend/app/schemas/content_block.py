@@ -96,6 +96,26 @@ class BlockReorderResponse(ActionSuccessResponse):
     blocks: list[PageBlockResponse] = []
 
 
+# PB-03: Du lieu Frontend gui de dong bo toan bo Block trong mot transaction
+class BulkSyncBlockItem(BaseModel):
+
+    id: int | None = None  # None = tao moi, co gia tri = cap nhat
+    type: Literal["text", "image", "video"] = "text"
+    content: str | None = None
+    media_id: int | None = Field(default=None, gt=0)
+    order_index: int = Field(default=0, ge=0)
+
+
+class BulkSyncBlocksRequest(BaseModel):
+
+    blocks: list[BulkSyncBlockItem] = Field(default_factory=list)
+
+
+class BulkSyncBlocksResponse(ActionSuccessResponse):
+
+    blocks: list[PageBlockResponse] = []
+
+
 # Du lieu Backend tra ve sau khi tao Image Block
 class ImageBlockResponse(BaseModel):
 
