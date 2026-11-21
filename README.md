@@ -1,7 +1,5 @@
 CMSBuilder
 CMSBuilder là hệ thống quản lý và xuất bản nội dung web theo mô hình block-based page builder. Người dùng có thể tạo trang, xây dựng nội dung từ các khối văn bản/hình ảnh/video, xem trước, lưu bản nháp và xuất bản trang để truy cập công khai.
-> Repository: [thangpthe/CMSBuilder](https://github.com/thangpthe/CMSBuilder)  
-> Nhánh tham chiếu khi biên soạn: `develop`
 ---
 1. Tổng quan
 CMSBuilder hướng đến việc đơn giản hóa quy trình tạo và quản lý các trang nội dung mà không cần viết mã HTML/CSS trực tiếp.
