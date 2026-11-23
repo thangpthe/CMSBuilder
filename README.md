@@ -1,401 +1,549 @@
-CMSBuilder
-CMSBuilder là hệ thống quản lý và xuất bản nội dung web theo mô hình block-based page builder. Người dùng có thể tạo trang, xây dựng nội dung từ các khối văn bản/hình ảnh/video, xem trước, lưu bản nháp và xuất bản trang để truy cập công khai.
----
-1. Tổng quan
-CMSBuilder hướng đến việc đơn giản hóa quy trình tạo và quản lý các trang nội dung mà không cần viết mã HTML/CSS trực tiếp.
-Các chức năng chính
-Đăng nhập bằng username hoặc email và mật khẩu.
-Phân quyền theo vai trò `system_admin` và `page_admin`.
-Tạo, xem danh sách, chỉnh sửa và xóa trang.
-Quản lý thông tin trang: tiêu đề, mô tả, slug và trạng thái.
-Xây dựng nội dung bằng các loại Content Block:
-Text: nội dung văn bản.
-Image: tải ảnh lên và gắn ảnh vào trang.
-Video: nhập đường dẫn video được Backend kiểm tra định dạng.
-Chỉnh sửa, nhân bản, xóa và sắp xếp thứ tự các khối nội dung.
-Xem trước trang theo các kích thước giao diện.
-Lưu trang và nội dung vào PostgreSQL.
-Xuất bản hoặc hủy xuất bản trang.
-Cung cấp trang công khai và danh sách các trang đã xuất bản.
-Quản lý phiên đăng nhập bằng JWT Bearer Token.
-Trạng thái trang
-Trạng thái	Ý nghĩa
-`draft`	Bản nháp, chỉ người có quyền truy cập trang mới quản lý được.
-`published`	Đã xuất bản và có thể được truy cập qua API công khai.
-Mỗi trang có một `slug` duy nhất để tạo đường dẫn truy cập công khai.
----
-2. Công nghệ sử dụng
-Frontend
-Công nghệ	Vai trò
-React 18	Xây dựng giao diện người dùng.
-TypeScript	Kiểm soát kiểu dữ liệu trong mã nguồn Frontend.
-Vite 5	Dev server và công cụ build.
-React Router DOM 6	Điều hướng và bảo vệ các route.
-Axios	Gửi HTTP request tới Backend API.
-lucide-react, react-icons	Bộ biểu tượng giao diện.
-CSS	Xây dựng giao diện và bố cục responsive.
-Backend
-Công nghệ	Vai trò
-Python 3.12	Ngôn ngữ lập trình Backend.
-FastAPI	Xây dựng REST API.
-Uvicorn	ASGI server chạy ứng dụng FastAPI.
-Pydantic 2	Kiểm tra và tuần tự hóa dữ liệu request/response.
-SQLAlchemy 2	ORM và thao tác cơ sở dữ liệu.
-Alembic	Quản lý database migrations.
-PostgreSQL	Cơ sở dữ liệu quan hệ.
-Psycopg 3	PostgreSQL driver.
-PyJWT	Tạo và xác minh JWT.
-pwdlib + Argon2	Băm và xác minh mật khẩu.
-Pillow	Kiểm tra/đọc định dạng ảnh.
-python-multipart	Xử lý upload file.
-python-dotenv	Đọc cấu hình từ file `.env`.
-Database và môi trường triển khai
-Database sử dụng: PostgreSQL.
-Dự án có thể kết nối PostgreSQL local hoặc PostgreSQL được quản lý trên cloud, ví dụ Neon.
-Không commit thông tin kết nối, mật khẩu hoặc JWT secret lên Git.
-File upload ảnh được lưu trong thư mục Backend và thông tin file được quản lý trong bảng `media`.
----
-3. Kiến trúc tổng quan
-CMSBuilder được tổ chức theo mô hình Frontend – Backend – Database:
-```text
-┌──────────────────────────┐
-│        Frontend          │
-│     React + TypeScript   │
-│                          │
-│  Page Builder / Admin    │
-│  Public Page / Login     │
-└────────────┬─────────────┘
-             │ HTTP / JSON
-             │ JWT Bearer Token
-             ▼
-┌──────────────────────────┐
-│         Backend          │
-│       FastAPI            │
-│                          │
-│  Routers                 │
-│  Schemas                 │
-│  Services                │
-│  Models                  │
-└────────────┬─────────────┘
-             │ SQLAlchemy
-             ▼
-┌──────────────────────────┐
-│       PostgreSQL         │
-│                          │
-│  users                   │
-│  pages                   │
-│  content_blocks          │
-│  media                   │
-│  revoked_tokens          │
-└──────────────────────────┘
-```
-Luồng hoạt động cơ bản
-Người dùng đăng nhập trên Frontend.
-Backend xác thực thông tin và trả về JWT access token.
-Frontend gửi token trong header `Authorization: Bearer <token>` khi gọi các API cần xác thực.
-Người dùng tạo hoặc chỉnh sửa trang và các Content Block.
-Backend kiểm tra quyền sở hữu, validate dữ liệu và lưu thông tin vào PostgreSQL.
-Khi xuất bản, trang chuyển sang trạng thái `published`.
-Người xem truy cập nội dung đã xuất bản thông qua Public Pages API.
----
-4. Cấu trúc thư mục
-```text
-CMSBuilder/
-├── backend/
-│   ├── app/
-│   │   ├── core/             # Cấu hình và bảo mật
-│   │   ├── db/               # SQLAlchemy engine, session và Base
-│   │   ├── models/           # User, Page, ContentBlock, Media...
-│   │   ├── routers/          # Các nhóm REST API
-│   │   ├── schemas/          # Pydantic request/response schemas
-│   │   ├── services/         # Xử lý nghiệp vụ
-│   │   └── main.py           # Khởi tạo FastAPI, CORS và routers
-│   ├── alembic/
-│   │   └── versions/         # Các phiên bản database migration
-│   ├── scripts/              # Script hỗ trợ
-│   ├── uploads/               # File media được upload
-│   ├── requirements.txt
-│   ├── alembic.ini
-│   └── .env                   # Tự tạo, không commit
-│
-├── frontend/
-│   ├── public/                # Tài nguyên tĩnh
-│   ├── src/
-│   │   ├── components/        # Thành phần giao diện dùng lại
-│   │   ├── contexts/          # React contexts
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── pages/             # Các trang ứng dụng
-│   │   ├── routes/            # Khai báo và bảo vệ routes
-│   │   ├── services/           # API clients và service
-│   │   ├── types/              # TypeScript types
-│   │   ├── utils/              # Hàm tiện ích
-│   │   └── main.tsx            # Entry point
-│   ├── package.json
-│   └── vite.config.ts
-│
-└── README.md
-```
----
-5. Yêu cầu môi trường
-Cài đặt các công cụ sau trước khi chạy dự án:
-Git
-Python 3.12
-Node.js (khuyến nghị phiên bản LTS tương thích với Vite 5)
-npm
-PostgreSQL hoặc tài khoản PostgreSQL cloud (ví dụ Neon)
-Kiểm tra phiên bản:
+# CMSBuilder – Frontend
+
+## 1. Giới thiệu
+
+CMSBuilder là hệ thống quản lý và xây dựng trang nội dung đa phương tiện (CMS Page Builder).
+
+Frontend được xây dựng bằng ReactJS, sử dụng Vite làm công cụ khởi tạo và chạy ứng dụng.
+
+README này hướng dẫn các thành viên trong nhóm cài đặt môi trường và chạy frontend trên máy local.
+
+## 2. Công nghệ sử dụng
+
+| Công nghệ        | Phiên bản |
+| ---------------- | --------- |
+| React            | 18.2.0    |
+| React DOM        | 18.2.0    |
+| Vite             | 5.4.x     |
+| React Router DOM | 6.28.x    |
+| Axios            | 1.7.x     |
+
+## 3. Yêu cầu môi trường
+
+Trước khi chạy dự án, cần cài đặt:
+
+- npm (được cài kèm Node.js).
+- Git.
+- Visual Studio Code hoặc IDE tương đương.
+
+Kiểm tra phiên bản đã cài:
+
 ```bash
+node -v
+npm -v
 git --version
-python --version
-node --version
-npm --version
 ```
----
-6. Cài đặt và chạy dự án
-Mở hai terminal riêng biệt: một terminal cho Backend và một terminal cho Frontend.
-6.1. Clone repository
+
+Nếu Node.js chưa đúng phiên bản, cần cài đặt phiên bản phù hợp trước khi tiếp tục.
+
+## 4. Tải source code
+
+Nếu chưa có source code:
+
 ```bash
-git clone https://github.com/thangpthe/CMSBuilder.git
-cd CMSBuilder
+git clone <GITHUB_REPOSITORY_URL>
 ```
-Chuyển sang nhánh phát triển:
+
+Di chuyển vào thư mục dự án:
+
 ```bash
-git switch develop
-git pull origin develop
+cd <PROJECT_FOLDER>
 ```
-6.2. Cấu hình và chạy Backend
-Bước 1: Tạo môi trường ảo
-Tại thư mục gốc dự án:
-```powershell
-cd backend
-python -m venv .venv
-```
-Kích hoạt trên Windows PowerShell:
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-Trên macOS/Linux:
-```bash
-source .venv/bin/activate
-```
-Bước 2: Cài đặt thư viện
-```bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-Bước 3: Tạo file cấu hình `backend/.env`
-Tạo file `.env` trong thư mục `backend` với nội dung mẫu:
-```env
-DATABASE_URL=postgresql+psycopg://DB_USER:DB_PASSWORD@DB_HOST:5432/DB_NAME?sslmode=require
-JWT_SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-```
-Thay các giá trị `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME` bằng thông tin PostgreSQL của môi trường đang sử dụng.
-Lưu ý:
-`DATABASE_URL` phải là connection string PostgreSQL tương thích với driver `psycopg`.
-Với Neon, sử dụng connection string do Neon cung cấp và giữ các tham số SSL cần thiết.
-`JWT_SECRET_KEY` phải là chuỗi bí mật đủ mạnh, không để trống và không dùng giá trị mẫu khi triển khai thật.
-Không chia sẻ hoặc commit file `.env`.
-`CORS_ORIGINS` là danh sách origin Frontend được phép truy cập, phân tách bằng dấu phẩy. Backend hiện đã cấu hình sẵn một số origin localhost phục vụ phát triển.
-Bước 4: Chạy database migrations
-Đảm bảo PostgreSQL đang hoạt động và `DATABASE_URL` chính xác, sau đó chạy tại thư mục `backend`:
-```bash
-alembic upgrade head
-```
-Kiểm tra migration hiện tại:
-```bash
-alembic current
-```
-Bước 5: Khởi động Backend
-```bash
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-Backend mặc định chạy tại:
-API base URL: `http://127.0.0.1:8000`
-Swagger UI: `http://127.0.0.1:8000/docs`
-ReDoc: `http://127.0.0.1:8000/redoc`
-Health check: `http://127.0.0.1:8000/health`
-6.3. Cấu hình và chạy Frontend
-Mở terminal thứ hai, tại thư mục gốc dự án:
+
+Nếu frontend nằm trong thư mục `frontend`:
+
 ```bash
 cd frontend
+```
+
+Nếu đã có source code trên máy, chỉ cần mở Terminal tại thư mục `frontend`.
+
+## 5. Cài đặt dependencies
+
+Chạy lệnh:
+
+```bash
 npm install
 ```
-Tạo file `frontend/.env.local`:
+
+Lệnh này sẽ cài đặt các thư viện được khai báo trong `package.json`.
+
+**Lưu ý:**
+
+- Ưu tiên sử dụng `npm install` khi cài đặt lần đầu.
+- Không tự ý xóa hoặc chỉnh sửa `package-lock.json`.
+- Các thành viên nên sử dụng chung file `package-lock.json` để hạn chế khác biệt phiên bản thư viện.
+
+## 6. Cấu hình môi trường
+
+Tạo file `.env` trong thư mục `frontend` nếu dự án chưa có.
+
+Ví dụ:
+
 ```env
 VITE_API_URL=http://127.0.0.1:8000
 ```
-Khởi động Vite:
+
+Trong đó:
+
+- `VITE_API_URL`: địa chỉ Backend API.
+- `127.0.0.1:8000`: địa chỉ minh họa, cần thay đổi nếu Backend chạy ở địa chỉ hoặc cổng khác.
+
+Nếu dự án có file `.env.example`, có thể sao chép:
+
+```bash
+cp .env.example .env
+```
+
+Trên Windows CMD:
+
+```cmd
+copy .env.example .env
+```
+
+**Lưu ý:** Không commit file `.env` chứa cấu hình cá nhân hoặc thông tin bí mật lên GitHub. Nên commit `.env.example` để các thành viên khác biết những biến môi trường cần khai báo.
+
+## 7. Chạy frontend trên local
+
+Sau khi cài đặt dependencies và cấu hình môi trường, chạy:
+
 ```bash
 npm run dev
 ```
-Frontend mặc định chạy tại:
+
+Nếu chạy thành công, Vite sẽ hiển thị địa chỉ truy cập, thường có dạng:
+
 ```text
-http://localhost:5173
+Local: http://localhost:5173/
 ```
-Các lệnh hữu ích:
+
+Mở trình duyệt và truy cập:
+
+```text
+http://localhost:5173/
+```
+
+Để dừng ứng dụng, nhấn:
+
+```text
+Ctrl + C
+```
+
+**Lưu ý:** Nếu Frontend cần gọi API, Backend cũng phải được khởi động và cấu hình đúng địa chỉ trong `.env`.
+
+## 8. Các lệnh thường dùng
+
+| Lệnh              | Chức năng                          |
+| ----------------- | ---------------------------------- |
+| `npm install`     | Cài đặt dependencies               |
+| `npm run dev`     | Chạy ứng dụng ở chế độ development |
+| `npm run build`   | Build ứng dụng                     |
+| `npm run preview` | Xem thử bản build local            |
+| `npm list`        | Kiểm tra các package đã cài        |
+
+Kiểm tra phiên bản các thư viện chính:
+
 ```bash
-# Chạy môi trường phát triển
-npm run dev
+npm list react react-dom vite react-router-dom axios
+```
 
-# Kiểm tra TypeScript và build production
+## 9. Build dự án
+
+Để kiểm tra khả năng build của frontend:
+
+```bash
 npm run build
+```
 
-# Kiểm tra TypeScript
-npm run lint
+Nếu build thành công, Vite sẽ tạo thư mục:
 
-# Chạy thử bản build production ở local
+```text
+dist/
+```
+
+Có thể xem thử bản build bằng lệnh:
+
+```bash
 npm run preview
 ```
----
-7. Các nhóm API
-Tài liệu API đầy đủ và schema request/response được cung cấp tự động tại `/docs` khi Backend đang chạy.
-Authentication
-Method	Endpoint	Mô tả
-`POST`	`/api/auth/login`	Đăng nhập bằng username/email và mật khẩu.
-`GET`	`/api/auth/me`	Lấy thông tin người dùng hiện tại.
-`POST`	`/api/auth/logout`	Đăng xuất và xử lý thu hồi token.
-Users
-Method	Endpoint	Mô tả
-`GET`	`/api/users`	Lấy danh sách người dùng; yêu cầu vai trò `system_admin`.
-Pages
-Method	Endpoint	Mô tả
-`POST`	`/api/pages`	Tạo trang mới.
-`GET`	`/api/pages`	Lấy danh sách trang của người dùng hiện tại.
-`GET`	`/api/pages/{page_id}`	Lấy chi tiết trang và các Content Block.
-`PUT`	`/api/pages/{page_id}`	Cập nhật thông tin trang.
-`DELETE`	`/api/pages/{page_id}`	Xóa trang.
-`POST`	`/api/pages/{page_id}/publish`	Xuất bản trang.
-`POST`	`/api/pages/{page_id}/unpublish`	Hủy xuất bản trang.
-Content Blocks
-Method	Endpoint	Mô tả
-`POST`	`/api/pages/{page_id}/blocks`	Tạo Content Block.
-`GET`	`/api/pages/{page_id}/blocks`	Lấy danh sách Content Block.
-`PUT`	`/api/pages/{page_id}/blocks/reorder`	Cập nhật thứ tự các khối.
-`PUT`	`/api/pages/{page_id}/blocks/sync`	API đồng bộ danh sách khối trong một transaction ở Backend.
-`PUT`	`/api/pages/{page_id}/blocks/{block_id}`	Cập nhật một Content Block.
-`DELETE`	`/api/pages/{page_id}/blocks/{block_id}`	Xóa một Content Block.
-Media
-Method	Endpoint	Mô tả
-`POST`	`/api/media/upload`	Upload hình ảnh.
-`GET`	`/api/media`	Lấy danh sách media của người dùng hiện tại.
-`GET`	`/api/media/{media_id}`	Lấy thông tin một media thuộc người dùng hiện tại.
-Public Pages
-Method	Endpoint	Mô tả
-`GET`	`/api/public/pages`	Lấy danh sách trang đã xuất bản.
-`GET`	`/api/public/pages/{slug}`	Lấy nội dung trang đã xuất bản theo slug.
-Health
-Method	Endpoint	Mô tả
-`GET`	`/health`	Kiểm tra trạng thái hoạt động của API.
----
-8. Dữ liệu và quy tắc nghiệp vụ chính
-Các thực thể chính
-Thực thể	Vai trò
-`User`	Tài khoản, vai trò và trạng thái hoạt động của người dùng.
-`Page`	Trang nội dung, chủ sở hữu, tiêu đề, mô tả, slug và trạng thái xuất bản.
-`ContentBlock`	Khối nội dung thuộc một trang; gồm `text`, `image`, `video`.
-`Media`	Thông tin file ảnh được tải lên và người sở hữu file.
-`RevokedToken`	Lưu JWT ID đã bị thu hồi khi đăng xuất.
-Quy tắc quyền truy cập
-Các API quản trị yêu cầu JWT hợp lệ.
-Người dùng chỉ truy cập và quản lý các trang thuộc quyền sở hữu của mình theo cơ chế hiện tại.
-API danh sách người dùng yêu cầu vai trò `system_admin`.
-Public Pages API không yêu cầu đăng nhập và chỉ trả về trang đã xuất bản.
-Upload hình ảnh
-Backend kiểm tra file ảnh trước khi lưu, bao gồm định dạng và nội dung ảnh. Theo triển khai hiện tại, luồng upload giới hạn các định dạng JPG/JPEG/PNG và dung lượng tối đa 5 MB.
----
-9. Database migrations
-Dự án sử dụng Alembic để quản lý thay đổi cấu trúc PostgreSQL.
-Chạy toàn bộ migration mới nhất:
-```bash
-alembic upgrade head
-```
-Xem revision hiện tại:
-```bash
-alembic current
-```
-Xem lịch sử migration:
-```bash
-alembic history
-```
-Kiểm tra model có khác biệt với database schema hay không:
-```bash
-alembic check
-```
-Khi thay đổi SQLAlchemy models, cần tạo migration mới và review file migration trước khi áp dụng lên database dùng chung.
----
-10. Quy trình Git đề xuất
-Các nhánh đang được sử dụng trong quá trình phát triển:
-Nhánh	Mục đích
-`main`	Nhánh ổn định/release.
-`develop`	Nhánh tích hợp tính năng.
-`feature/thang`	Công việc của Thăng.
-`feature/dat`	Công việc của Đạt.
-`feature/vu`	Công việc của Vũ.
-`feature/thuy`	Công việc của Thủy.
-`feature/quang-anh`	Công việc của Quang Anh.
-Quy trình làm việc:
-Cập nhật nhánh `develop`.
-Tạo hoặc chuyển sang nhánh feature được phân công.
-Phát triển và kiểm tra thay đổi trên nhánh cá nhân.
-Commit với nội dung rõ ràng.
-Tạo Pull Request từ nhánh feature vào `develop`.
-Review code, xử lý xung đột và kiểm tra trước khi merge.
-Chỉ đưa phiên bản đã được xác nhận ổn định sang `main`.
-Ví dụ:
-```bash
-git switch develop
-git pull origin develop
-git switch feature/<ten-thanh-vien>
 
-# Sau khi hoàn thành và kiểm tra
+## 10. Cấu trúc thư mục
+
+Cấu trúc thư mục frontend dự kiến:
+
+```text
+frontend/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── contexts/
+│   ├── hooks/
+│   ├── routes/
+│   ├── utils/
+│   ├── styles/
+│   ├── App.jsx
+│   └── main.jsx
+├── .env
+├── .env.example
+├── .gitignore
+├── index.html
+├── package.json
+├── package-lock.json
+└── vite.config.js
+```
+
+Các thư mục có thể được bổ sung hoặc điều chỉnh trong quá trình phát triển.
+
+## 11. Quy trình làm việc nhóm
+
+Để hạn chế xung đột code, các thành viên cần tuân thủ Git Workflow của dự án.
+
+### Bước 1: Cập nhật code mới nhất
+
+```bash
+git checkout develop
+git pull origin develop
+```
+
+### Bước 2: Tạo branch làm việc
+
+Ví dụ:
+
+```bash
+git checkout -b feature/frontend-login
+```
+
+Tên branch nên thể hiện chức năng đang thực hiện:
+
+```text
+feature/frontend-login
+feature/page-management
+feature/page-builder
+feature/public-page
+fix/login-validation
+```
+
+### Bước 3: Thực hiện công việc
+
+Sau khi hoàn thành một phần chức năng, kiểm tra ứng dụng trên local trước khi commit.
+
+### Bước 4: Commit code
+
+```bash
 git add .
-git commit -m "feat: describe the change"
-git push origin feature/<ten-thanh-vien>
+git commit -m "feat: implement login page"
 ```
-Không commit các dữ liệu/cấu hình riêng tư như:
-`.env`, `.env.local`
-`.venv/`
-`node_modules/`
-`dist/`
-File database local hoặc file upload chứa dữ liệu thực tế
----
-11. Kiểm tra trước khi tạo Pull Request
-Backend
+
+### Bước 5: Push branch lên GitHub
+
 ```bash
-# Đứng tại thư mục backend và kích hoạt virtual environment
-python -m compileall app
-alembic current
-alembic check
+git push origin feature/frontend-login
 ```
-Nếu dự án có test suite:
+
+### Bước 6: Tạo Pull Request
+
+- Tạo Pull Request từ branch cá nhân vào `develop`.
+- Mô tả rõ chức năng đã thực hiện.
+- Chờ thành viên phụ trách review.
+- Chỉ merge sau khi đã kiểm tra và thống nhất.
+
+**Quy định:** Không phát triển trực tiếp trên branch `main`. Không tự ý merge code chưa được review.
+
+## 12. Xử lý lỗi thường gặp
+
+### Lỗi 1: `npm install` thất bại
+
+Thử kiểm tra phiên bản Node.js và npm:
+
 ```bash
-pytest
+node -v
+npm -v
 ```
-Frontend
+
+Nếu vẫn gặp lỗi, có thể thử cài đặt lại dependencies:
+
 ```bash
-# Đứng tại thư mục frontend
-npm run lint
-npm run build
+npm install
 ```
-Ngoài kiểm tra lệnh, cần kiểm thử luồng nghiệp vụ: đăng nhập, tạo trang, thêm/sửa/xóa/sắp xếp block, lưu và tải lại trang, upload ảnh, publish, unpublish và truy cập trang công khai.
+
+### Lỗi 2: Cổng 5173 đã được sử dụng
+
+Vite có thể tự chuyển sang cổng khác, ví dụ:
+
+```text
+http://localhost:5174/
+```
+
+Truy cập đúng địa chỉ được hiển thị trong Terminal.
+
+### Lỗi 3: Frontend không kết nối được Backend
+
+Kiểm tra:
+
+- Backend đã được khởi động chưa.
+- Địa chỉ `VITE_API_URL` trong file `.env` đã chính xác chưa.
+- Backend đã cấu hình CORS cho địa chỉ Frontend chưa.
+- API endpoint có đúng với tài liệu thống nhất giữa Frontend và Backend không.
+
+Sau khi thay đổi file `.env`, cần khởi động lại Vite.
+
+### Lỗi 4: Không tìm thấy package hoặc module
+
+Chạy:
+
+```bash
+npm install
+```
+
+Nếu vừa thêm package mới, kiểm tra package đã được khai báo trong `package.json` chưa.
+
 ---
-12. Lưu ý bảo mật
-Không đưa thông tin đăng nhập PostgreSQL, JWT secret hoặc token lên GitHub.
-Không sử dụng mật khẩu mặc định hoặc JWT secret mẫu trong môi trường dùng chung/production.
-Không lưu mật khẩu người dùng ở dạng văn bản thuần; Backend sử dụng cơ chế băm mật khẩu.
-Các API quản trị phải gửi JWT Bearer Token.
-Cần kiểm tra quyền sở hữu đối với Page và Media ở Backend; không dựa vào việc ẩn/hiện thành phần giao diện Frontend để bảo vệ dữ liệu.
-Khi triển khai production, cần cấu hình CORS theo đúng domain thực tế, HTTPS, lưu trữ file phù hợp và quy trình backup PostgreSQL.
----
-13. Đóng góp và báo lỗi
-Khi báo lỗi hoặc gửi Pull Request, nên cung cấp:
-Mô tả ngắn gọn vấn đề hoặc mục tiêu thay đổi.
-Các bước tái hiện lỗi (nếu có).
-Kết quả mong đợi và kết quả thực tế.
-Ảnh chụp màn hình hoặc log liên quan, sau khi đã loại bỏ token và thông tin nhạy cảm.
-Danh sách file hoặc module bị ảnh hưởng.
----
-CMSBuilder — Block-based Content Management and Page Building.
+
+## 13. Hoàn tất
+
+Sau khi thực hiện đầy đủ các bước trên, thành viên có thể chạy CMSBuilder Frontend trên máy local.
+
+Lệnh chạy nhanh:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Địa chỉ truy cập mặc định:
+
+```text
+http://localhost:5173/
+```
+
+**Lưu ý:** Mỗi thành viên cần cập nhật source code mới nhất từ branch `develop` trước khi bắt đầu công việc.
+
+# HƯỚNG DẪN SỬ DỤNG GIT VÀ LÀM VIỆC NHÓM
+
+## Dự án CMSBuilder
+
+### 1. Quy định chung
+
+Nhóm sử dụng GitHub để quản lý source code theo mô hình:
+
+- `main`: Chứa phiên bản ổn định của dự án.
+- `develop`: Chứa code mới nhất đã được tích hợp của toàn nhóm.
+- `feature/<ten-thanh-vien>`: Branch làm việc riêng của từng thành viên.
+
+Mỗi thành viên được cấp một branch riêng. Thành viên chỉ code và push code lên branch của mình, không push trực tiếp lên `main` hoặc `develop`.
+
+### 2. Danh sách branch của các thành viên
+
+| Thành viên       | Branch được sử dụng |
+| ---------------- | ------------------- |
+| Phùng Thế Thăng  | `feature/thang`     |
+| Đỗ Huy Đạt       | `feature/dat`       |
+| Nguyễn Nguyên Vũ | `feature/vu`        |
+| Tạ Thị Thủy      | `feature/thuy`      |
+| Nguyễn Quang Anh | `feature/quang-anh` |
+
+### 3. Lần đầu tiên lấy source code về máy
+
+Mỗi thành viên thực hiện các bước sau:
+
+**Bước 1: Clone repository**
+
+Nếu chưa có source code trên máy:
+
+```
+git clone <GITHUB_REPOSITORY_URL>
+```
+
+Di chuyển vào thư mục dự án:
+
+```
+cd <PROJECT_FOLDER>
+```
+
+**Bước 2: Lấy danh sách branch mới nhất**
+
+```
+git fetch origin
+```
+
+**Bước 3: Chuyển sang branch cá nhân**
+
+Ví dụ thành viên Đỗ Huy Đạt:
+
+```
+git switch --track origin/feature/dat
+```
+
+Các thành viên khác thay tên branch tương ứng.
+
+**Bước 4: Lấy code mới nhất từ develop**
+
+```
+git merge origin/develop
+```
+
+Sau bước này, thành viên có source code từ `develop` và đang đứng trên branch cá nhân của mình.
+
+**Bước 5: Cài đặt dependencies**
+
+Đối với Frontend:
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+Đối với Backend, thực hiện theo README hướng dẫn chạy Backend của dự án.
+
+### 4. Quy trình làm việc hằng ngày
+
+Mỗi khi bắt đầu một buổi làm việc, thành viên thực hiện:
+
+**Bước 1: Chuyển sang branch cá nhân**
+
+Ví dụ:
+
+```
+git switch feature/dat
+```
+
+**Bước 2: Lấy code mới nhất từ GitHub**
+
+```
+git fetch origin
+git merge origin/develop
+```
+
+Mục đích: Cập nhật những chức năng mà các thành viên khác đã hoàn thành và được tích hợp vào `develop`.
+
+**Bước 3: Thực hiện task được phân công**
+
+- Chỉ làm những task được giao trong Sprint Backlog.
+- Hạn chế chỉnh sửa file thuộc phạm vi phụ trách của thành viên khác.
+- Nếu cần chỉnh sửa file dùng chung, phải trao đổi với người đang phụ trách file đó.
+- Kiểm tra chức năng trước khi commit.
+
+**Bước 4: Commit code**
+
+Ví dụ:
+
+```
+git add .
+git commit -m "feat: implement page management"
+```
+
+Quy ước commit:
+
+| Prefix     | Ý nghĩa                       | Ví dụ                            |
+| ---------- | ----------------------------- | -------------------------------- |
+| `feat`     | Thêm chức năng                | `feat: implement login`          |
+| `fix`      | Sửa lỗi                       | `fix: resolve login error`       |
+| `docs`     | Cập nhật tài liệu             | `docs: update frontend README`   |
+| `style`    | Chỉnh sửa giao diện/định dạng | `style: update dashboard layout` |
+| `refactor` | Tái cấu trúc code             | `refactor: organize components`  |
+| `test`     | Bổ sung kiểm thử              | `test: add login tests`          |
+| `chore`    | Cấu hình, công việc kỹ thuật  | `chore: update dependencies`     |
+
+**Bước 5: Push code lên branch cá nhân**
+
+```
+git push origin feature/dat
+```
+
+Thay `feature/dat` bằng branch của thành viên tương ứng.
+
+### 5. Quy trình đưa code lên develop
+
+Sau khi hoàn thành task:
+
+1. Thành viên push code lên branch cá nhân.
+2. Truy cập repository trên GitHub.
+3. Chọn Pull Requests.
+4. Nhấn New Pull Request.
+5. Chọn:
+   - Base: `develop`
+   - Compare: branch cá nhân của mình.
+6. Viết mô tả chức năng đã hoàn thành.
+7. Tạo Pull Request và thông báo Team Leader.
+8. Team Leader kiểm tra, review và merge nếu đạt yêu cầu.
+
+**Không tự ý merge Pull Request nếu chưa được Team Leader đồng ý.**
+
+### 6. Sau khi code được merge vào develop
+
+Khi một thành viên khác đã merge code vào `develop`, những thành viên còn lại cần cập nhật branch cá nhân trước khi tiếp tục làm việc:
+
+```
+git fetch origin
+git merge origin/develop
+```
+
+Lệnh trên cần được thực hiện khi đang đứng ở branch cá nhân.
+
+Nếu có xung đột (conflict), không tự ý xóa hoặc ghi đè code của thành viên khác. Hãy thông báo Team Leader để cùng xử lý.
+
+### 7. Các nguyên tắc bắt buộc
+
+1. Không code trực tiếp trên `main` hoặc `develop`.
+2. Không push trực tiếp lên `develop`.
+3. Mỗi thành viên chỉ push lên branch được phân công.
+4. Luôn cập nhật code từ `develop` trước khi bắt đầu task.
+5. Không commit file `.env` chứa thông tin cá nhân hoặc bí mật.
+6. Không tự ý xóa, đổi tên branch hoặc sửa lịch sử Git của người khác.
+7. Phải kiểm tra code trước khi push.
+8. Mọi code muốn tích hợp vào dự án đều phải thông qua Pull Request.
+
+### 8. Bảng lệnh Git cần nhớ
+
+| Mục đích                 | Lệnh                          |
+| ------------------------ | ----------------------------- |
+| Kiểm tra branch hiện tại | `git branch`                  |
+| Chuyển branch cá nhân    | `git switch feature/dat`      |
+| Lấy thông tin mới nhất   | `git fetch origin`            |
+| Cập nhật từ develop      | `git merge origin/develop`    |
+| Kiểm tra thay đổi        | `git status`                  |
+| Thêm file vào commit     | `git add .`                   |
+| Commit code              | `git commit -m "feat: ..."`   |
+| Push code                | `git push origin feature/dat` |
+
+### 9. Quy trình tóm tắt
+
+**Mỗi thành viên chỉ cần nhớ:**
+
+```
+# 1. Chuyển sang branch cá nhân
+git switch feature/dat
+
+# 2. Lấy thông tin mới nhất
+git fetch origin
+
+# 3. Cập nhật code từ develop
+git merge origin/develop
+
+# 4. Code và kiểm tra chức năng
+
+# 5. Commit
+git add .
+git commit -m "feat: ten-chuc-nang"
+
+# 6. Push lên branch cá nhân
+git push origin feature/dat
+```
+
+Sau đó tạo Pull Request từ branch cá nhân vào `develop`.
+
+**Mục tiêu:** Giữ `main` ổn định, dùng `develop` làm nơi tích hợp code và mỗi thành viên phát triển độc lập trên branch riêng. Nhóm thống nhất chỉ có Team Leader chịu trách nhiệm review và merge code vào `develop`.
+
+## 3. Một lưu ý mình muốn bạn thống nhất trước khi gửi nhóm
+
+Có hai tình huống khác nhau:
+
+- Lần đầu: Thành viên clone repository, checkout branch cá nhân và lấy code từ `develop`.
+- Những lần tiếp theo: Chỉ cần `fetch` và `merge origin/develop` khi đang ở branch cá nhân.
+
+Đặc biệt, nếu một thành viên đang có code chưa commit thì phải commit hoặc lưu lại trước khi merge để tránh mất thay đổi.
