@@ -1,7 +1,8 @@
 import time
 import logging
 import jwt
-from sqlalchemy import or_, select, text
+from sqlalchemy import func, or_, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from fastapi import (
@@ -15,6 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
 from app.core.security import (
     create_access_token,
+    get_password_hash,
     verify_password,
     get_current_user,
     bearer_scheme,
@@ -23,7 +25,13 @@ from app.core.security import (
 
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    RegisterResponse,
+    TokenResponse,
+    UserAuthInfo,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -148,3 +156,69 @@ def logout(
             pass
 
     return {"message": "Da dang xuat"}
+
+
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register(
+    register_data: RegisterRequest,
+    db: Session = Depends(get_db),
+):
+    """Register a new page_admin user account."""
+    # Check duplicate username case-insensitively
+    existing_username = db.scalar(
+        select(User).where(
+            func.lower(User.username) == register_data.username.lower()
+        )
+    )
+    if existing_username is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tên đăng nhập đã tồn tại.",
+        )
+
+    # Check duplicate email case-insensitively when provided
+    if register_data.email is not None:
+        existing_email = db.scalar(
+            select(User).where(
+                func.lower(User.email) == register_data.email.lower()
+            )
+        )
+        if existing_email is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email đã được sử dụng.",
+            )
+
+    new_user = User(
+        username=register_data.username,
+        email=register_data.email,
+        hashed_password=get_password_hash(register_data.password),
+        role="page_admin",
+        is_active=True,
+    )
+
+    db.add(new_user)
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Tên đăng nhập hoặc email đã tồn tại.",
+        ) from error
+
+    db.refresh(new_user)
+
+    return RegisterResponse(
+        message="Đăng ký tài khoản thành công. Vui lòng đăng nhập.",
+        user=UserAuthInfo(
+            id=new_user.id,
+            username=new_user.username,
+            email=new_user.email,
+            role=new_user.role,
+        ),
+    )
