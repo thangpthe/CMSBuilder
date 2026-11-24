@@ -158,11 +158,17 @@ export const PageManagementView: React.FC<PageManagementViewProps> = ({ onPrevie
   };
 
   const handlePreview = (page: Page) => {
-    if (onPreview) onPreview(page);
-    else {
-      const url = `/p${displaySlug(page.slug)}`;
-      if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener,noreferrer');
+    if (onPreview) {
+      onPreview(page);
+      return;
     }
+    const cleanSlug = page.slug.replace(/^\/+/, '');
+    const basePath = cleanSlug ? `/p/${cleanSlug}` : '/p';
+    const url =
+      page.status === 'draft'
+        ? `${basePath}?preview=1&pageId=${encodeURIComponent(page.id)}`
+        : basePath;
+    if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleBuildContent = (page: Page) => {

@@ -210,11 +210,13 @@ export const pageRealApi: IPageApi = {
   },
 
   async createPage(data: CreatePageRequest): Promise<PageMutationResponse> {
+    const cleanSlug = data.slug?.trim().replace(/^\/+|\/+$/g, '');
     let created = await request<BackendPage>('/api/pages', {
       method: 'POST',
       body: JSON.stringify({
         title: data.title,
         description: data.description,
+        ...(cleanSlug ? { slug: cleanSlug } : {}),
       }),
     });
 

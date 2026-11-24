@@ -221,16 +221,16 @@ export const PageCardListMobile: React.FC<PageCardListMobileProps> = ({
               <FiEdit size={14} />
               <span>{published ? 'Sửa' : 'Tiếp tục sửa'}</span>
             </button>
-            {published ? (
-              <button
-                type="button"
-                onClick={() => onPreview(page)}
-                style={pillBtn(COLORS.bgSoft, COLORS.text)}
-              >
-                <FiEye size={14} />
-                <span>Xem trước</span>
-              </button>
-            ) : (
+            <button
+              type="button"
+              onClick={() => onPreview(page)}
+              aria-label={`Xem trước ${page.title}`}
+              style={pillBtn(COLORS.bgSoft, COLORS.text)}
+            >
+              <FiEye size={14} />
+              <span>Xem trước</span>
+            </button>
+            {!published && (
               <button
                 type="button"
                 disabled={busy}

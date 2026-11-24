@@ -80,6 +80,18 @@
   display: inline-block;
 }
 
+.pub-preview-status--draft {
+  color: #FCD34D;
+  background-color: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+}
+
+.pub-preview-status__dot--draft {
+  background-color: #FBBF24;
+}
+
 .pub-preview-url {
   font-size: 0.8125rem;
   color: #CBD5E1;
@@ -194,6 +206,11 @@
     font-weight: 600;
     white-space: nowrap;
     flex-shrink: 0;
+  }
+
+  .pub-mobile-status-pill--draft {
+    background-color: var(--status-draft-bg, #FEF3C7);
+    color: var(--status-draft-text, #92400E);
   }
 
   .pub-mobile-url-pill {
@@ -543,6 +560,54 @@
 .pub-prose strong {
   color: var(--brand-primary, #4F46E5);
   font-weight: 600;
+}
+
+/* Empty Draft Preview Notice Card */
+.pub-draft-empty-card {
+  margin: 1.5rem 0 2.5rem 0;
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.125rem, 3vw, 2rem);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1.5px dashed #F59E0B;
+  background: linear-gradient(180deg, #FFFBEB 0%, #FFFFFF 100%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pub-draft-empty-card__icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: var(--status-draft-bg, #FEF3C7);
+  color: var(--status-draft-text, #92400E);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pub-draft-empty-card__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-primary, #0F172A);
+}
+
+.pub-draft-empty-card__desc {
+  margin: 0 0 0.5rem 0;
+  max-width: 32rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-muted, #475569);
+}
+
+.pub-draft-empty-card__btn {
+  white-space: normal;
+  text-align: center;
+  padding: 0.625rem 1.25rem;
+  max-width: 100%;
 }
 
 /* Quote Block (GÓC NHÌN THIẾT KẾ) */
@@ -1193,6 +1258,12 @@
 .pub-floating-dock__btn:hover .pub-dock-tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+@media (max-width: 63.99rem) {
+  .pub-floating-dock {
+    display: none;
+  }
 }
 
 /* Scroll To Top Button */

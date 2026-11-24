@@ -37,6 +37,8 @@ type NotFoundReason = 'draft' | 'not_found' | null;
 interface RouteInfo {
   slug: string | null;
   forcedStatus: string | null;
+  isPreview: boolean;
+  previewPageId: string | null;
 }
 
 interface PublicBlock {
@@ -72,6 +74,37 @@ interface PublicPageApiResponse {
   blocks: PublicBlock[];
 }
 
+interface OwnerPageDetailApiResponse {
+  id: number | string;
+  owner_id?: number;
+  title: string;
+  description: string | null;
+  slug: string | null;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string | null;
+  blocks?: PublicBlock[];
+}
+
+function getStoredAuthorName(): string {
+  try {
+    if (typeof window === 'undefined') return 'Tác giả CMSBuilder';
+    const raw = window.localStorage.getItem('cms_user');
+    if (!raw) return 'Tác giả CMSBuilder';
+    const parsed = JSON.parse(raw) as { username?: unknown; name?: unknown } | null;
+    if (parsed && typeof parsed.username === 'string' && parsed.username.trim()) {
+      return parsed.username.trim();
+    }
+    if (parsed && typeof parsed.name === 'string' && parsed.name.trim()) {
+      return parsed.name.trim();
+    }
+  } catch {
+    // ignore invalid JSON in localStorage
+  }
+  return 'Tác giả CMSBuilder';
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const DEFAULT_SAMPLE_ARTICLE: Page = {
@@ -98,23 +131,32 @@ function normalizeSlug(slug: string): string {
 
 function getRouteInfo(): RouteInfo {
   if (typeof window === 'undefined') {
-    return { slug: null, forcedStatus: null };
+    return { slug: null, forcedStatus: null, isPreview: false, previewPageId: null };
   }
   const params = new URLSearchParams(window.location.search);
   const querySlug = params.get('slug');
   const forcedStatus = params.get('status');
+  const previewParam = params.get('preview');
+  const isPreview = previewParam === '1' || previewParam === 'true';
+  const rawPageId = params.get('pageId');
+  const previewPageId = rawPageId && rawPageId.trim() !== '' ? rawPageId.trim() : null;
 
   if (querySlug !== null && querySlug.trim() !== '') {
-    return { slug: normalizeSlug(querySlug), forcedStatus };
+    return { slug: normalizeSlug(querySlug), forcedStatus, isPreview, previewPageId };
   }
 
   const pathname = window.location.pathname || '';
   const match = pathname.match(/^\/(?:p|public)\/(.+)$/i);
   if (match && match[1]) {
-    return { slug: normalizeSlug(decodeURIComponent(match[1])), forcedStatus };
+    return {
+      slug: normalizeSlug(decodeURIComponent(match[1])),
+      forcedStatus,
+      isPreview,
+      previewPageId,
+    };
   }
 
-  return { slug: null, forcedStatus };
+  return { slug: null, forcedStatus, isPreview, previewPageId };
 }
 
 function formatVietnameseDate(iso?: string | null): string {
@@ -152,7 +194,9 @@ function toYouTubeEmbedUrl(rawUrl: string): string | null {
 
 export default function PublicPage() {
   const navigate = useNavigate();
-  const [{ slug, forcedStatus }, setRouteInfo] = useState<RouteInfo>(() => getRouteInfo());
+  const [{ slug, forcedStatus, isPreview, previewPageId }, setRouteInfo] = useState<RouteInfo>(() =>
+    getRouteInfo()
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [resolvedPage, setResolvedPage] = useState<Page | null>(null);
   const [realBlocks, setRealBlocks] = useState<PublicBlock[]>([]);
@@ -243,26 +287,99 @@ export default function PublicPage() {
         return;
       }
 
-      // Real Backend Mode: fetch published pages across all users
+      // Real Backend Mode: fetch owner preview (when authenticated) or published pages across all users
       if (!USE_MOCK) {
         try {
-          let pagesList: PublicPageSummary[] = [];
-          try {
-            const listRes = await fetch(`${API_BASE_URL}/api/public/pages?limit=50`, {
-              method: 'GET',
-              headers: { Accept: 'application/json' },
-            });
-            if (listRes.ok) {
-              const listData = await listRes.json();
-              pagesList = listData.items || [];
-              if (active) {
-                setAllPublishedPages(pagesList);
+          const fetchPublicPagesList = async (): Promise<PublicPageSummary[]> => {
+            try {
+              const listRes = await fetch(`${API_BASE_URL}/api/public/pages?limit=50`, {
+                method: 'GET',
+                headers: { Accept: 'application/json' },
+              });
+              if (listRes.ok) {
+                const listData = await listRes.json();
+                const items = (listData.items || []) as PublicPageSummary[];
+                if (active) {
+                  setAllPublishedPages(items);
+                }
+                return items;
               }
+            } catch {
+              // non-blocking
             }
-          } catch {
-            // non-blocking
+            return [];
+          };
+
+          if (isPreview && previewPageId) {
+            let token: string | null = null;
+            try {
+              token = typeof window !== 'undefined' ? window.localStorage.getItem('access_token') : null;
+            } catch {
+              token = null;
+            }
+
+            if (!token) {
+              if (active) {
+                setResolvedPage(null);
+                setNotFoundReason('not_found');
+                setLoading(false);
+              }
+              return;
+            }
+
+            const [, response] = await Promise.all([
+              fetchPublicPagesList(),
+              fetch(`${API_BASE_URL}/api/pages/${encodeURIComponent(previewPageId)}`, {
+                method: 'GET',
+                headers: {
+                  Accept: 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+              }),
+            ]);
+
+            if (!active) return;
+
+            if (
+              response.status === 401 ||
+              response.status === 403 ||
+              response.status === 404 ||
+              !response.ok
+            ) {
+              setResolvedPage(null);
+              setNotFoundReason('not_found');
+              setLoading(false);
+              return;
+            }
+
+            const data = (await response.json()) as OwnerPageDetailApiResponse;
+            if (!active) return;
+
+            const mappedPage: Page = {
+              id: String(data.id),
+              title: data.title,
+              slug: data.slug || '',
+              description: data.description || '',
+              status: data.status === 'published' ? 'published' : 'draft',
+              author: {
+                id: data.owner_id != null ? String(data.owner_id) : 'owner',
+                name: getStoredAuthorName(),
+              },
+              createdAt: data.created_at || data.published_at || new Date().toISOString(),
+              updatedAt: data.updated_at || data.published_at || data.created_at || new Date().toISOString(),
+            };
+
+            const sortedBlocks = Array.isArray(data.blocks)
+              ? [...data.blocks].sort((a, b) => a.order_index - b.order_index)
+              : [];
+
+            setResolvedPage(mappedPage);
+            setRealBlocks(sortedBlocks);
+            setNotFoundReason(null);
+            return;
           }
 
+          const pagesList = await fetchPublicPagesList();
           if (!active) return;
 
           // Determine target slug: query slug or first available published page
@@ -347,17 +464,20 @@ export default function PublicPage() {
           }))
         );
 
-        const matched = slug
-          ? items.find((p) => {
-              const pSlug = normalizeSlug(p.slug);
-              return pSlug === slug || (slug === 'home' && pSlug === '');
-            })
-          : publishedItems[0] || DEFAULT_SAMPLE_ARTICLE;
+        const matched =
+          isPreview && previewPageId
+            ? items.find((p) => String(p.id) === previewPageId)
+            : slug
+              ? items.find((p) => {
+                  const pSlug = normalizeSlug(p.slug);
+                  return pSlug === slug || (slug === 'home' && pSlug === '');
+                })
+              : publishedItems[0] || DEFAULT_SAMPLE_ARTICLE;
 
         if (!matched) {
           setResolvedPage(null);
           setNotFoundReason('not_found');
-        } else if (matched.status === 'draft') {
+        } else if (matched.status === 'draft' && !(isPreview && previewPageId)) {
           setResolvedPage(matched);
           setNotFoundReason('draft');
         } else {
@@ -377,9 +497,10 @@ export default function PublicPage() {
     return () => {
       active = false;
     };
-  }, [slug, forcedStatus]);
+  }, [slug, forcedStatus, isPreview, previewPageId]);
 
   const article = resolvedPage || DEFAULT_SAMPLE_ARTICLE;
+  const isDraftPreview = Boolean(isPreview && resolvedPage && resolvedPage.status !== 'published');
 
   // Dynamic reading metrics
   const readingStats = useMemo(() => {
@@ -396,21 +517,30 @@ export default function PublicPage() {
   }, [article, realBlocks]);
 
   const displayUrl = useMemo(() => {
-    const s =
-      article.slug && article.slug !== '/'
-        ? normalizeSlug(article.slug)
-        : 'gioi-thieu-san-pham-sprint-1';
-    return `https://cmsbuilder.vn/p/${s}`;
-  }, [article.slug]);
+    const clean = article.slug && article.slug !== '/' ? normalizeSlug(article.slug) : '';
+    if (clean) {
+      return `https://cmsbuilder.vn/p/${clean}`;
+    }
+    if (isDraftPreview) {
+      return `https://cmsbuilder.vn/p?preview=1&pageId=${encodeURIComponent(article.id)}`;
+    }
+    return 'https://cmsbuilder.vn/p/gioi-thieu-san-pham-sprint-1';
+  }, [article.id, article.slug, isDraftPreview]);
 
   // Smooth client-side navigation between published pages
   const handleNavigateSlug = (newSlug: string) => {
     const clean = normalizeSlug(newSlug);
-    window.history.pushState(null, '', `/p/${clean}`);
-    setRouteInfo({ slug: clean, forcedStatus: null });
+    const nextPath = clean ? `/p/${clean}` : '/p';
+    window.history.pushState(null, '', nextPath);
+    setRouteInfo({
+      slug: clean || null,
+      forcedStatus: null,
+      isPreview: false,
+      previewPageId: null,
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowAllPagesDrawer(false);
-    showToast(`Đang mở: /p/${clean}`);
+    showToast(`Đang mở: ${nextPath}`);
   };
 
   const handleCopyUrl = async () => {
@@ -473,6 +603,7 @@ export default function PublicPage() {
   };
 
   const handleGoDefaultPublic = () => {
+    setRouteInfo({ slug: null, forcedStatus: null, isPreview: false, previewPageId: null });
     navigate('/p');
   };
 
@@ -517,7 +648,9 @@ export default function PublicPage() {
       <div className="pub-root">
         <div className="pub-loading" role="status" aria-live="polite">
           <span className="pub-preview-status__dot" style={{ marginRight: '0.75rem' }} />
-          Đang tải dữ liệu trang công khai từ máy chủ...
+          {isPreview
+            ? 'Đang tải bản xem trước từ máy chủ...'
+            : 'Đang tải dữ liệu trang công khai từ máy chủ...'}
         </div>
       </div>
     );
@@ -622,9 +755,12 @@ export default function PublicPage() {
         <div className="pub-preview-bar" role="region" aria-label="Thanh xem trước quản trị">
           <div className="pub-container pub-preview-bar__inner">
             <div className="pub-preview-bar__left">
-              <span className="pub-preview-status">
-                <span className="pub-preview-status__dot" aria-hidden="true" />
-                <span>Chính thức</span>
+              <span className={`pub-preview-status ${isDraftPreview ? 'pub-preview-status--draft' : ''}`}>
+                <span
+                  className={`pub-preview-status__dot ${isDraftPreview ? 'pub-preview-status__dot--draft' : ''}`}
+                  aria-hidden="true"
+                />
+                <span>{isDraftPreview ? 'Xem trước · Bản nháp (Chưa xuất bản)' : 'Chính thức'}</span>
               </span>
               <span aria-hidden="true" style={{ color: '#64748B' }}>
                 •
@@ -743,10 +879,13 @@ export default function PublicPage() {
       </header>
 
       {/* Mobile Compact Status Strip (< 768px) */}
-      <div className="pub-mobile-status-strip" aria-label="Thông tin trang công khai">
-        <span className="pub-mobile-status-pill">
+      <div
+        className="pub-mobile-status-strip"
+        aria-label={isDraftPreview ? 'Thông tin xem trước bản nháp' : 'Thông tin trang công khai'}
+      >
+        <span className={`pub-mobile-status-pill ${isDraftPreview ? 'pub-mobile-status-pill--draft' : ''}`}>
           <span>●</span>
-          <span>Công khai</span>
+          <span>{isDraftPreview ? 'Xem trước nháp' : 'Công khai'}</span>
         </span>
         <div className="pub-mobile-url-pill" title={displayUrl}>
           <FiLink2 size={13} aria-hidden="true" />
@@ -803,9 +942,11 @@ export default function PublicPage() {
           <h1 className="pub-article__title">{article.title}</h1>
 
           {/* Lead */}
-          <p className="pub-article__lead">
-            {article.description || DEFAULT_SAMPLE_ARTICLE.description}
-          </p>
+          {(!isDraftPreview || Boolean(article.description?.trim())) && (
+            <p className="pub-article__lead">
+              {article.description || DEFAULT_SAMPLE_ARTICLE.description}
+            </p>
+          )}
 
           {/* Author Card */}
           <div className="pub-author-card">
@@ -821,7 +962,9 @@ export default function PublicPage() {
                 </span>
               </div>
               <div className="pub-author-role">
-                Xuất bản chính thức trên hệ sinh thái CMSBuilder • Cập nhật {formatVietnameseDate(article.updatedAt)}
+                {isDraftPreview
+                  ? `Bản nháp xem trước (chưa xuất bản công khai) • Cập nhật ${formatVietnameseDate(article.updatedAt)}`
+                  : `Xuất bản chính thức trên hệ sinh thái CMSBuilder • Cập nhật ${formatVietnameseDate(article.updatedAt)}`}
               </div>
             </div>
           </div>
@@ -937,6 +1080,30 @@ export default function PublicPage() {
                 return null;
               })}
             </div>
+          ) : isDraftPreview ? (
+            <section
+              className="pub-draft-empty-card"
+              id="explore"
+              aria-label="Trang bản nháp chưa có nội dung"
+            >
+              <div className="pub-draft-empty-card__icon" aria-hidden="true">
+                <FiEdit3 size={24} />
+              </div>
+              <h2 className="pub-draft-empty-card__title">
+                Trang bản nháp này chưa có khối nội dung nào.
+              </h2>
+              <p className="pub-draft-empty-card__desc">
+                Bạn đang xem trước một trang ở trạng thái bản nháp. Hãy mở Trình soạn thảo để thêm văn bản, hình ảnh hoặc video trước khi xuất bản.
+              </p>
+              <button
+                type="button"
+                className="pub-btn-primary pub-draft-empty-card__btn"
+                onClick={handleGoBuilder}
+              >
+                <FiEdit3 size={16} aria-hidden="true" />
+                <span>Mở Trình soạn thảo để thêm nội dung</span>
+              </button>
+            </section>
           ) : (
             <>
               {/* Fallback Hero Image Block */}
@@ -1114,7 +1281,7 @@ export default function PublicPage() {
             {filteredSectionPages.length > 0 ? (
               <div className="pub-other-pages__grid">
                 {filteredSectionPages.map((p) => {
-                  const isCurrent = normalizeSlug(p.slug) === normalizeSlug(article.slug);
+                  const isCurrent = !isDraftPreview && normalizeSlug(p.slug) === normalizeSlug(article.slug);
                   return (
                     <div
                       key={p.id}
@@ -1239,7 +1406,7 @@ export default function PublicPage() {
             <div className="pub-drawer__list">
               {filteredDrawerPages.length > 0 ? (
                 filteredDrawerPages.map((item) => {
-                  const isCurrent = normalizeSlug(item.slug) === normalizeSlug(article.slug);
+                  const isCurrent = !isDraftPreview && normalizeSlug(item.slug) === normalizeSlug(article.slug);
                   return (
                     <div
                       key={item.id}
