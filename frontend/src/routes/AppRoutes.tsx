@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 import PageBuilderPage from "../pages/page-builder/PageBuilderPage";
 import PageListPage from "../pages/pages-management/PageListPage";
 import PublicPage from "../pages/public/PublicPage";
@@ -32,8 +33,9 @@ function RootRedirect() {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Login */}
+      {/* Login & Register */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Page Builder */}
       <Route

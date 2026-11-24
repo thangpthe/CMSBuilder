@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { login, getCurrentUser, getDefaultRouteForRole } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
 import type { ChangeEvent, FormEvent } from "react";
@@ -13,6 +13,7 @@ import {
   X,
   ArrowRight,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 import "./LoginPage.css";
@@ -22,21 +23,47 @@ interface LoginErrors {
   password?: string;
 }
 
+interface LoginLocationState {
+  from?: { pathname?: string };
+  registeredMessage?: string;
+  registeredUsername?: string;
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const locationState = (location.state as LoginLocationState | null) ?? null;
   const { isAuthenticated, user: authUser, loginUser } = useAuth();
 
   const [form, setForm] = useState({
-    identifier: "",
+    identifier: locationState?.registeredUsername?.trim() || "",
     password: "",
   });
 
   const [errors, setErrors] = useState<LoginErrors>({});
 
   const [serverError, setServerError] = useState("");
+  const [successMessage, setSuccessMessage] = useState(
+    locationState?.registeredMessage?.trim() || ""
+  );
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Đồng bộ dữ liệu chuyển sang từ trang đăng ký (nếu có)
+  useEffect(() => {
+    if (locationState?.registeredUsername) {
+      const prefilledUsername = locationState.registeredUsername.trim();
+      if (prefilledUsername) {
+        setForm((current) => ({
+          ...current,
+          identifier: prefilledUsername,
+        }));
+      }
+    }
+    if (locationState?.registeredMessage) {
+      setSuccessMessage(locationState.registeredMessage.trim());
+    }
+  }, [locationState?.registeredUsername, locationState?.registeredMessage]);
 
   // Neu da dang nhap tu truoc, tu dong chuyen huong ve trang mac dinh theo role
   useEffect(() => {
@@ -91,6 +118,7 @@ function LoginPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setServerError("");
+    setSuccessMessage("");
 
     if (!validate()) return;
 
@@ -121,9 +149,9 @@ function LoginPage() {
       loginUser(response.access_token, loggedInUser);
 
       // Chuyen huong theo dung role cua user (system_admin -> /dashboard, page_admin -> /pages)
-      const fromPath = (location.state as { from?: { pathname?: string } })?.from?.pathname;
+      const fromPath = locationState?.from?.pathname;
       const targetDestination =
-        fromPath && fromPath !== "/login"
+        fromPath && fromPath !== "/login" && fromPath !== "/register"
           ? fromPath
           : getDefaultRouteForRole(loggedInUser?.role);
 
@@ -210,6 +238,26 @@ function LoginPage() {
             <h2>Đăng nhập</h2>
             <p>Chào mừng bạn trở lại với CMSBuilder.</p>
           </div>
+
+          {successMessage && (
+            <div className="login-success-alert" role="status">
+              <CheckCircle2
+                className="success-alert-icon"
+                size={18}
+                aria-hidden="true"
+              />
+
+              <span>{successMessage}</span>
+
+              <button
+                type="button"
+                aria-label="Đóng thông báo"
+                onClick={() => setSuccessMessage("")}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          )}
 
           {serverError && (
             <div className="login-alert" role="alert">
@@ -347,6 +395,13 @@ function LoginPage() {
               )}
             </button>
           </form>
+
+          <p className="auth-switch-row">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="auth-switch-link">
+              Đăng ký ngay
+            </Link>
+          </p>
 
           <div className="login-bottom">
             <span>© 2026 CMSBuilder. Bản quyền được bảo lưu.</span>

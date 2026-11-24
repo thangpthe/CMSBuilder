@@ -19,12 +19,35 @@ export interface LoginResponse {
   user?: User;
 }
 
+export interface RegisterPayload {
+  username: string;
+  email?: string | null;
+  password: string;
+}
+
+export interface RegisterResponse {
+  message: string;
+  user: User;
+}
+
 export const login = async ({ identifier, password }: LoginCredentials): Promise<LoginResponse> => {
   const response = await apiClient.post<LoginResponse>('/api/auth/login', {
     identifier,
     password,
   });
 
+  return response.data;
+};
+
+export const register = async (payload: RegisterPayload): Promise<RegisterResponse> => {
+  const normalizedEmail = payload.email?.trim();
+  const requestBody: RegisterPayload = {
+    username: payload.username,
+    password: payload.password,
+    ...(normalizedEmail ? { email: normalizedEmail } : {}),
+  };
+
+  const response = await apiClient.post<RegisterResponse>('/api/auth/register', requestBody);
   return response.data;
 };
 
