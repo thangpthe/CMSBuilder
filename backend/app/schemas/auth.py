@@ -4,7 +4,7 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-USERNAME_REGEX = re.compile(r"^[A-Za-z0-9_.-]+\Z")
+USERNAME_REGEX = re.compile(r"^[a-z0-9_.-]+\Z")
 EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+\Z")
 
 
@@ -40,7 +40,7 @@ class RegisterRequest(BaseModel):
     @field_validator("username")
     @classmethod
     def validate_username(cls, value: str) -> str:
-        """Trim and validate username format and length."""
+        """Trim and validate lowercase-only username format and length."""
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("Tên đăng nhập không được để trống.")
@@ -48,7 +48,7 @@ class RegisterRequest(BaseModel):
             raise ValueError("Tên đăng nhập phải từ 3 đến 100 ký tự.")
         if not USERNAME_REGEX.match(cleaned):
             raise ValueError(
-                "Tên đăng nhập chỉ được chứa chữ cái, chữ số, dấu chấm, gạch dưới hoặc gạch ngang."
+                "Tên đăng nhập chỉ được chứa chữ thường không dấu (a-z), chữ số, dấu chấm, gạch dưới hoặc gạch ngang (không chứa chữ hoa)."
             )
         return cleaned
 

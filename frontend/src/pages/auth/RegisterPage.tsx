@@ -44,7 +44,7 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-const USERNAME_REGEX = /^[A-Za-z0-9_.-]+$/;
+const USERNAME_REGEX = /^[a-z0-9_.-]+$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function extractServerErrorMessage(data?: ApiErrorResponse): string | null {
@@ -113,7 +113,7 @@ function RegisterPage() {
       nextErrors.username = "Tên đăng nhập phải từ 3 đến 100 ký tự.";
     } else if (!USERNAME_REGEX.test(trimmedUsername)) {
       nextErrors.username =
-        "Tên đăng nhập chỉ được chứa chữ cái không dấu, chữ số và ký tự ., _, -.";
+        "Tên đăng nhập chỉ được dùng chữ thường không dấu (a-z), chữ số và ký tự ., _, - (không chứa chữ hoa).";
     }
 
     if (trimmedEmail && !EMAIL_REGEX.test(trimmedEmail)) {
@@ -307,10 +307,11 @@ function RegisterPage() {
                   id="register-username"
                   name="username"
                   type="text"
-                  placeholder="Nhập tên đăng nhập"
+                  placeholder="Nhập tên đăng nhập (chữ thường)"
                   value={form.username}
                   onChange={handleChange}
                   autoComplete="username"
+                  autoCapitalize="none"
                   disabled={loading}
                   aria-invalid={Boolean(errors.username)}
                   aria-describedby={

@@ -53,12 +53,13 @@ def login(
 
     # Lay username hoac email
     identifier = login_data.identifier.strip()
+    normalized_identifier = identifier.lower()
 
-    # Tim User trong Database
+    # Tim User trong Database (khong phan biet hoa thuong)
     statement = select(User).where(
         or_(
-            User.username == identifier,
-            User.email == identifier
+            func.lower(User.username) == normalized_identifier,
+            func.lower(User.email) == normalized_identifier
         )
     )
 
