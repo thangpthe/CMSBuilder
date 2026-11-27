@@ -69,6 +69,7 @@ def list_public_pages_api(
     items = [
         PublicPageSummaryResponse(
             id=page.id,
+            owner_id=page.owner_id,
             title=page.title,
             description=page.description,
             slug=page.slug or f"page-{page.id}",
@@ -158,6 +159,7 @@ def get_public_page_api(
     # Tra ve Public Page
     return PublicPageResponse(
         id=page.id,
+        owner_id=page.owner_id,
         title=page.title,
         description=page.description,
         slug=page.slug or slug,

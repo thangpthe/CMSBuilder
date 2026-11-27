@@ -28,6 +28,7 @@ import {
 } from 'react-icons/fi';
 import { pageApi, USE_MOCK } from '../../features/pages/api/pageApi';
 import type { Page } from '../../features/pages/types/page.types';
+import { useAuth } from '../../hooks/useAuth';
 import { WorkspaceHeroIllustration, VideoPreviewPoster } from './PublicIllustrations';
 import PublicNotFoundView from './PublicNotFoundView';
 import './PublicPage.css';
@@ -54,6 +55,7 @@ interface PublicBlock {
 
 export interface PublicPageSummary {
   id: number;
+  owner_id?: number | null;
   title: string;
   description: string | null;
   slug: string;
@@ -65,6 +67,7 @@ export interface PublicPageSummary {
 
 interface PublicPageApiResponse {
   id: number;
+  owner_id?: number | null;
   title: string;
   description: string | null;
   slug: string;
@@ -76,7 +79,7 @@ interface PublicPageApiResponse {
 
 interface OwnerPageDetailApiResponse {
   id: number | string;
-  owner_id?: number;
+  owner_id?: number | null;
   title: string;
   description: string | null;
   slug: string | null;
@@ -194,11 +197,13 @@ function toYouTubeEmbedUrl(rawUrl: string): string | null {
 
 export default function PublicPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [{ slug, forcedStatus, isPreview, previewPageId }, setRouteInfo] = useState<RouteInfo>(() =>
     getRouteInfo()
   );
   const [loading, setLoading] = useState<boolean>(true);
   const [resolvedPage, setResolvedPage] = useState<Page | null>(null);
+  const [pageOwnerId, setPageOwnerId] = useState<number | null>(null);
   const [realBlocks, setRealBlocks] = useState<PublicBlock[]>([]);
   const [notFoundReason, setNotFoundReason] = useState<NotFoundReason>(null);
 
@@ -277,10 +282,12 @@ export default function PublicPage() {
       setLoading(true);
       setNotFoundReason(null);
       setRealBlocks([]);
+      setPageOwnerId(null);
 
       if (forcedStatus === 'draft') {
         if (active) {
           setResolvedPage(null);
+          setPageOwnerId(null);
           setNotFoundReason('draft');
           setLoading(false);
         }
@@ -321,6 +328,7 @@ export default function PublicPage() {
             if (!token) {
               if (active) {
                 setResolvedPage(null);
+                setPageOwnerId(null);
                 setNotFoundReason('not_found');
                 setLoading(false);
               }
@@ -347,6 +355,7 @@ export default function PublicPage() {
               !response.ok
             ) {
               setResolvedPage(null);
+              setPageOwnerId(null);
               setNotFoundReason('not_found');
               setLoading(false);
               return;
@@ -374,6 +383,7 @@ export default function PublicPage() {
               : [];
 
             setResolvedPage(mappedPage);
+            setPageOwnerId(data.owner_id ?? null);
             setRealBlocks(sortedBlocks);
             setNotFoundReason(null);
             return;
@@ -387,6 +397,7 @@ export default function PublicPage() {
 
           if (!targetSlug) {
             setResolvedPage(null);
+            setPageOwnerId(null);
             setNotFoundReason('not_found');
             setLoading(false);
             return;
@@ -404,6 +415,7 @@ export default function PublicPage() {
 
           if (response.status === 404) {
             setResolvedPage(null);
+            setPageOwnerId(null);
             setNotFoundReason('not_found');
             setLoading(false);
             return;
@@ -422,7 +434,10 @@ export default function PublicPage() {
             slug: data.slug,
             description: data.description || '',
             status: data.status === 'published' ? 'published' : 'draft',
-            author: { id: 'author', name: data.author_name || 'Tác giả CMSBuilder' },
+            author: {
+              id: data.owner_id != null ? String(data.owner_id) : 'author',
+              name: data.author_name || 'Tác giả CMSBuilder',
+            },
             createdAt: data.published_at || new Date().toISOString(),
             updatedAt: data.published_at || new Date().toISOString(),
           };
@@ -432,11 +447,13 @@ export default function PublicPage() {
             : [];
 
           setResolvedPage(mappedPage);
+          setPageOwnerId(data.owner_id ?? null);
           setRealBlocks(sortedBlocks);
           setNotFoundReason(null);
         } catch {
           if (!active) return;
           setResolvedPage(null);
+          setPageOwnerId(null);
           setNotFoundReason('not_found');
         } finally {
           if (active) setLoading(false);
@@ -476,17 +493,24 @@ export default function PublicPage() {
 
         if (!matched) {
           setResolvedPage(null);
+          setPageOwnerId(null);
           setNotFoundReason('not_found');
         } else if (matched.status === 'draft' && !(isPreview && previewPageId)) {
           setResolvedPage(matched);
+          setPageOwnerId(null);
           setNotFoundReason('draft');
         } else {
           setResolvedPage(matched);
+          const parsedOwnerId = Number(matched.author?.id);
+          setPageOwnerId(
+            matched.author?.id != null && !Number.isNaN(parsedOwnerId) ? parsedOwnerId : null
+          );
           setNotFoundReason(null);
         }
       } catch {
         if (!active) return;
         setResolvedPage(null);
+        setPageOwnerId(null);
         setNotFoundReason('not_found');
       } finally {
         if (active) setLoading(false);
@@ -501,6 +525,14 @@ export default function PublicPage() {
 
   const article = resolvedPage || DEFAULT_SAMPLE_ARTICLE;
   const isDraftPreview = Boolean(isPreview && resolvedPage && resolvedPage.status !== 'published');
+  const isAuthor = useMemo(() => {
+    if (isDraftPreview) return true;
+    if (!isAuthenticated || !user) return false;
+    if (pageOwnerId !== null) {
+      return String(pageOwnerId) === String(user.id);
+    }
+    return false;
+  }, [isDraftPreview, isAuthenticated, user, pageOwnerId]);
 
   // Dynamic reading metrics
   const readingStats = useMemo(() => {
@@ -786,15 +818,19 @@ export default function PublicPage() {
                 <span>{copied ? 'Đã sao chép!' : 'Sao chép URL'}</span>
               </button>
 
-              <button type="button" className="pub-btn-admin-back" onClick={handleGoBuilder}>
-                <FiEdit3 size={15} />
-                <span>Chỉnh sửa</span>
-              </button>
+              {isAuthor && (
+                <button type="button" className="pub-btn-admin-back" onClick={handleGoBuilder}>
+                  <FiEdit3 size={15} />
+                  <span>Chỉnh sửa</span>
+                </button>
+              )}
 
-              <button type="button" className="pub-btn-admin-back" onClick={handleGoAdmin}>
-                <FiArrowLeft size={15} />
-                <span>Quản trị</span>
-              </button>
+              {isAuthenticated && (
+                <button type="button" className="pub-btn-admin-back" onClick={handleGoAdmin}>
+                  <FiArrowLeft size={15} />
+                  <span>Quản trị</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -909,15 +945,27 @@ export default function PublicPage() {
         >
           {copied ? <FiCheck size={16} /> : <FiCopy size={16} />}
         </button>
-        <button
-          type="button"
-          className="pub-mobile-icon-btn pub-mobile-icon-btn--primary"
-          onClick={handleGoAdmin}
-          aria-label="Quay về trang quản trị"
-          title="Quay về trang quản trị"
-        >
-          <FiEdit3 size={16} />
-        </button>
+        {isAuthor ? (
+          <button
+            type="button"
+            className="pub-mobile-icon-btn pub-mobile-icon-btn--primary"
+            onClick={handleGoBuilder}
+            aria-label="Chỉnh sửa trang"
+            title="Chỉnh sửa trang"
+          >
+            <FiEdit3 size={16} />
+          </button>
+        ) : isAuthenticated ? (
+          <button
+            type="button"
+            className="pub-mobile-icon-btn pub-mobile-icon-btn--primary"
+            onClick={handleGoAdmin}
+            aria-label="Quay về trang quản trị"
+            title="Quay về trang quản trị"
+          >
+            <FiArrowLeft size={16} />
+          </button>
+        ) : null}
       </div>
 
       {/* Main Article Container */}

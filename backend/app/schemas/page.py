@@ -124,6 +124,7 @@ class PageDetailResponse(PageResponse):
 # Response cho danh sach Public Page
 class PublicPageSummaryResponse(BaseModel):
     id: int
+    owner_id: int | None = None
     title: str
     description: str | None = None
     slug: str
@@ -144,6 +145,7 @@ class PublicPageListResponse(BaseModel):
 class PublicPageResponse(BaseModel):
 
     id: int
+    owner_id: int | None = None
     title: str
     description: str | None = None
     slug: str
