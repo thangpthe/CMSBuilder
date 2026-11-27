@@ -53,7 +53,7 @@ def build_public_media_url(
 @router.get(
     "",
     response_model=PublicPageListResponse,
-    summary="Lay danh sach tat ca cac trang da xuat ban cua toan bo nguoi dung"
+    summary="Get all published pages",
 )
 def list_public_pages_api(
     skip: int = Query(default=0, ge=0),

@@ -249,7 +249,7 @@ function RegisterPage() {
             <h1>Xây dựng & Xuất bản nội dung trực quan</h1>
 
             <p>
-              Nền tảng biên tập kéo thả trực quan giúp đội ngũ xuất bản
+              Nền tảng biên tập nội dung giúp cá nhân xuất bản
               trang linh hoạt và nhanh chóng.
             </p>
 

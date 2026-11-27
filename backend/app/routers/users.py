@@ -30,7 +30,7 @@ def require_system_admin(
 @router.get(
     "",
     response_model=UserListResponse,
-    summary="Lay danh sach nguoi dung",
+    summary="Get all users (system admin only)",
 )
 def get_users(
     skip: int = Query(default=0, ge=0),
