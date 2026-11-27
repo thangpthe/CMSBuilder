@@ -40,9 +40,14 @@ export const COLORS = {
   dangerSoft: 'var(--status-danger-bg)',
 };
 
+/** Chuẩn hoá slug lưu trữ: loại bỏ dấu "/" đầu và tiền tố "p/" nếu vô tình có. */
+export function stripSlugPrefix(slug: string): string {
+  return (slug ?? '').trim().replace(/^(?:\/+|p\/)+/i, '');
+}
+
 export function displaySlug(slug: string): string {
-  const s = slug.replace(/^\/+/, '');
-  return `/${s}`;
+  const s = stripSlugPrefix(slug);
+  return s ? `/p/${s}` : '/p';
 }
 
 export function formatUpdatedAt(iso: string, now: number = Date.now()): string {
@@ -235,7 +240,7 @@ export const PageTableRow: React.FC<PageTableRowProps> = ({
               borderRadius: '0.375rem',
               fontSize: '0.78125rem',
               whiteSpace: 'nowrap',
-              maxWidth: '9.5rem',
+              maxWidth: '11rem',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
             }}

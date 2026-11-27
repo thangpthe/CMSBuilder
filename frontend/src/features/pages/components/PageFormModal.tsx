@@ -100,12 +100,14 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     minHeight: '2.75rem',
-    padding: '0 0.625rem',
+    padding: '0 0.5rem',
     background: COLORS.primarySoft,
     color: COLORS.primary,
     borderRadius: '0.625rem',
     fontFamily: 'monospace',
     fontSize: '0.875rem',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   linkBtn: {
     border: `1px solid ${COLORS.borderStrong}`,
@@ -351,7 +353,7 @@ export const PageFormModal: React.FC<PageFormModalProps> = ({
                 </span>
               </div>
               <div style={styles.slugWrap}>
-                <span style={styles.slugPrefix}>/</span>
+                <span style={styles.slugPrefix}>/p/</span>
                 <input
                   id={ids.slug}
                   type="text"

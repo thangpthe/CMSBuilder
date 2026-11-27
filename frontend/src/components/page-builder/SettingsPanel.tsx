@@ -86,7 +86,7 @@ export default function SettingsPanel({
           </button>
         </div>
         <div className="slug-input">
-          <span>cmsbuilder.vn/</span>
+          <span>cmsbuilder.vn/p/</span>
           <input
             id="page-slug-input"
             value={slug}
